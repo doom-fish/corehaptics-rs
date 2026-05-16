@@ -5,11 +5,24 @@ use super::{ContextDrop, Object};
 pub type EngineStoppedHandler = Option<unsafe extern "C" fn(*mut c_void, i32)>;
 pub type EngineResetHandler = Option<unsafe extern "C" fn(*mut c_void)>;
 pub type EngineFinishedHandler = Option<unsafe extern "C" fn(*mut c_void, Object) -> i32>;
+pub type EngineCompletionHandler = Option<unsafe extern "C" fn(*mut c_void, Object)>;
 
 unsafe extern "C" {
     pub fn chrs_engine_create(error_out: *mut Object) -> Object;
     pub fn chrs_engine_start(engine: Object, error_out: *mut Object) -> bool;
+    pub fn chrs_engine_start_with_completion_handler(
+        engine: Object,
+        callback: EngineCompletionHandler,
+        context: *mut c_void,
+        drop_context: ContextDrop,
+    );
     pub fn chrs_engine_stop(engine: Object, error_out: *mut Object) -> bool;
+    pub fn chrs_engine_stop_with_completion_handler(
+        engine: Object,
+        callback: EngineCompletionHandler,
+        context: *mut c_void,
+        drop_context: ContextDrop,
+    );
     pub fn chrs_engine_current_time(engine: Object) -> f64;
 
     pub fn chrs_engine_plays_haptics_only(engine: Object) -> bool;

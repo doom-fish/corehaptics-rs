@@ -2,7 +2,7 @@
 
 Safe Rust bindings for Apple's [CoreHaptics](https://developer.apple.com/documentation/corehaptics) framework on macOS.
 
-> **Status:** v0.2 adds full safe coverage for the macOS CoreHaptics surface: device capability queries, `CHHapticEngine`, `CHHapticPattern`, `CHHapticEvent`, `CHHapticPatternPlayer`, `CHHapticAdvancedPatternPlayer`, `CHHapticDynamicParameter`, `CHHapticParameterCurve`, and `CHHapticEventParameter`.
+> **Status:** v0.2.1 reaches full audited safe coverage for the macOS CoreHaptics surface, including async engine lifecycle callbacks.
 
 The crate uses a static Swift bridge because `CoreHaptics` is Objective-C / Swift-first. All public Rust APIs are safe wrappers over that bridge.
 
@@ -11,8 +11,8 @@ The crate uses a static Swift bridge because `CoreHaptics` is Objective-C / Swif
 - Query hardware support and parameter ranges with `DeviceCapability`
 - Build `HapticEvent`, `HapticEventParameter`, `DynamicParameter`, and `ParameterCurve` value graphs in pure Rust
 - Create patterns from typed values, AHAP dictionaries, or `.ahap` files
-- Start engines, create normal / advanced players, send live parameters, schedule curves, and register audio resources
-- Install Rust closures for engine and advanced-player completion callbacks
+- Start engines synchronously or asynchronously, create normal / advanced players, send live parameters, schedule curves, and register audio resources
+- Install Rust closures for engine start/stop, engine finished, and advanced-player completion callbacks
 
 ## Quick start
 
@@ -63,7 +63,7 @@ The numbered examples in `examples/` cover every logical area:
 4. parameter curves
 5. events
 6. patterns + AHAP import/export
-7. engine lifecycle + callbacks
+7. engine lifecycle + sync/async callbacks
 8. pattern players
 9. advanced pattern players
 

@@ -1,4 +1,4 @@
-# CoreHaptics coverage audit (`corehaptics` v0.2.0)
+# CoreHaptics coverage audit (`corehaptics` v0.2.1)
 
 Audited against:
 
@@ -101,9 +101,10 @@ Status legend:
 | `autoShutdownEnabled` | ✅ | `HapticEngine::{auto_shutdown_enabled,set_auto_shutdown_enabled}` |
 | `initAndReturnError:` | ✅ | `HapticEngine::new` |
 | `initWithAudioSession:error` | ⏭️ | `AVAudioSession` is unavailable on macOS |
-| `startWithCompletionHandler:` | ✅ | bridged synchronously as `HapticEngine::start` |
-| `startAndReturnError:` | ✅ | bridged synchronously as `HapticEngine::start` |
-| `stopWithCompletionHandler:` | ✅ | bridged synchronously via `DispatchSemaphore` as `HapticEngine::stop` |
+| `CHHapticCompletionHandler` | ✅ | Rust closures via `HapticEngine::{start_with_completion_handler,start_async,stop_with_completion_handler,stop_async}` |
+| `startWithCompletionHandler:` | ✅ | `HapticEngine::{start_with_completion_handler,start_async}` |
+| `startAndReturnError:` | ✅ | `HapticEngine::start` |
+| `stopWithCompletionHandler:` | ✅ | `HapticEngine::{stop_with_completion_handler,stop_async}` (plus blocking `HapticEngine::stop`) |
 | `notifyWhenPlayersFinished:` | ✅ | `HapticEngine::notify_when_players_finished` |
 | `createPlayerWithPattern:error` | ✅ | `HapticEngine::create_player` |
 | `createAdvancedPlayerWithPattern:error` | ✅ | `HapticEngine::create_advanced_player` |

@@ -1,10 +1,10 @@
 # corehaptics coverage audit (vs MacOSX26.2.sdk)
 
 SDK_PUBLIC_SYMBOLS: 141
-VERIFIED: 136
-GAPS: 3
+VERIFIED: 139
+GAPS: 0
 EXEMPT: 2
-COVERAGE_PCT: 97.84%
+COVERAGE_PCT: 100.00%
 
 Methodology:
 
@@ -130,6 +130,7 @@ Methodology:
 | CHHapticEngineStoppedReason | enum typedef | CHHapticEngine.h | EngineStoppedReason |
 | CHHapticEngineStoppedHandler | block typedef | CHHapticEngine.h | HapticEngine::set_stopped_handler (Rust closure) |
 | CHHapticEngineResetHandler | block typedef | CHHapticEngine.h | HapticEngine::set_reset_handler (Rust closure) |
+| CHHapticCompletionHandler | block typedef | CHHapticEngine.h | HapticEngine::{start_with_completion_handler,start_async,stop_with_completion_handler,stop_async} (Rust closures) |
 | CHHapticEngine | interface | CHHapticEngine.h | HapticEngine |
 | CHHapticEngine.capabilitiesForHardware | class method | CHHapticEngine.h | DeviceCapability::current |
 | CHHapticEngine.currentTime | property | CHHapticEngine.h | HapticEngine::current_time |
@@ -141,7 +142,9 @@ Methodology:
 | CHHapticEngine.isMutedForHaptics | property | CHHapticEngine.h | HapticEngine::{is_muted_for_haptics,set_muted_for_haptics} |
 | CHHapticEngine.autoShutdownEnabled | property | CHHapticEngine.h | HapticEngine::{auto_shutdown_enabled,set_auto_shutdown_enabled} |
 | CHHapticEngine.initAndReturnError: | initializer | CHHapticEngine.h | HapticEngine::new |
+| CHHapticEngine.startWithCompletionHandler: | method | CHHapticEngine.h | HapticEngine::{start_with_completion_handler,start_async} |
 | CHHapticEngine.startAndReturnError: | method | CHHapticEngine.h | HapticEngine::start |
+| CHHapticEngine.stopWithCompletionHandler: | method | CHHapticEngine.h | HapticEngine::{stop_with_completion_handler,stop_async} |
 | CHHapticEngine.notifyWhenPlayersFinished: | method | CHHapticEngine.h | HapticEngine::notify_when_players_finished |
 | CHHapticEngine.createPlayerWithPattern:error: | method | CHHapticEngine.h | HapticEngine::create_player |
 | CHHapticEngine.createAdvancedPlayerWithPattern:error: | method | CHHapticEngine.h | HapticEngine::create_advanced_player |
@@ -156,9 +159,6 @@ Methodology:
 ## 🔴 GAPS
 | Symbol | Kind | Header | Notes |
 | --- | --- | --- | --- |
-| CHHapticCompletionHandler | block typedef | CHHapticEngine.h | The crate only exposes blocking HapticEngine::start()/stop() entry points, not a public completion-callback type. |
-| CHHapticEngine.startWithCompletionHandler: | method | CHHapticEngine.h | No public async start wrapper; the crate only exposes blocking HapticEngine::start(). |
-| CHHapticEngine.stopWithCompletionHandler: | method | CHHapticEngine.h | No public async stop wrapper; the crate only exposes blocking HapticEngine::stop(). |
 
 ## ⏭️ EXEMPT
 | Symbol | Kind | Header | Reason | SDK attribute |

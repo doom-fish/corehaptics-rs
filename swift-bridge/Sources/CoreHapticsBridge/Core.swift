@@ -6,6 +6,7 @@ public typealias CHRSContextDrop = @convention(c) (UnsafeMutableRawPointer?) -> 
 public typealias CHRSEngineStoppedHandler = @convention(c) (UnsafeMutableRawPointer?, Int32) -> Void
 public typealias CHRSEngineResetHandler = @convention(c) (UnsafeMutableRawPointer?) -> Void
 public typealias CHRSEngineFinishedHandler = @convention(c) (UnsafeMutableRawPointer?, UnsafeMutableRawPointer?) -> Int32
+public typealias CHRSEngineCompletionHandler = @convention(c) (UnsafeMutableRawPointer?, UnsafeMutableRawPointer?) -> Void
 public typealias CHRSAdvancedPlayerCompletionHandler = @convention(c) (UnsafeMutableRawPointer?, UnsafeMutableRawPointer?) -> Void
 
 @inline(__always)

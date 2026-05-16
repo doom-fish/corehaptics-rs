@@ -4,7 +4,7 @@ use std::{
     fs,
     sync::{
         atomic::{AtomicBool, Ordering},
-        Arc,
+        mpsc, Arc,
     },
     time::Duration,
 };
@@ -62,6 +62,38 @@ fn engine_properties_callbacks_and_pattern_playback_work() -> corehaptics::Resul
     engine.play_pattern_from_data(&ahap_bytes)?;
     engine.play_pattern_from_file(fixture_path("minimal.ahap"))?;
     engine.stop()?;
+    Ok(())
+}
+
+#[test]
+fn engine_start_and_stop_completion_handlers_report_success() -> corehaptics::Result<()> {
+    if !supports_haptics()? {
+        return Ok(());
+    }
+
+    let engine = HapticEngine::new()?;
+
+    let (start_tx, start_rx) = mpsc::channel();
+    engine.start_with_completion_handler(move |error| {
+        let _ = start_tx.send(error.map_or(Ok(()), |error| Err(error.to_string())));
+    });
+    assert_eq!(
+        start_rx
+            .recv_timeout(Duration::from_secs(2))
+            .expect("engine start completion should arrive"),
+        Ok(())
+    );
+
+    let (stop_tx, stop_rx) = mpsc::channel();
+    engine.stop_with_completion_handler(move |error| {
+        let _ = stop_tx.send(error.map_or(Ok(()), |error| Err(error.to_string())));
+    });
+    assert_eq!(
+        stop_rx
+            .recv_timeout(Duration::from_secs(2))
+            .expect("engine stop completion should arrive"),
+        Ok(())
+    );
     Ok(())
 }
 

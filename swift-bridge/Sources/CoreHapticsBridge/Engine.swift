@@ -85,6 +85,31 @@ final class EngineFinishedHandlerBox {
     }
 }
 
+final class EngineCompletionHandlerBox {
+    let callback: CHRSEngineCompletionHandler
+    let context: UnsafeMutableRawPointer?
+    let dropContext: CHRSContextDrop?
+
+    init(
+        callback: @escaping CHRSEngineCompletionHandler,
+        context: UnsafeMutableRawPointer?,
+        dropContext: CHRSContextDrop?
+    ) {
+        self.callback = callback
+        self.context = context
+        self.dropContext = dropContext
+    }
+
+    func invoke(_ error: Error?) {
+        let errorPointer = error.map { chrsRetain($0 as NSError) }
+        callback(context, errorPointer)
+    }
+
+    deinit {
+        dropContext?(context)
+    }
+}
+
 final class EngineBox: NSObject {
     let engine: CHHapticEngine
     var stoppedHandlerBox: EngineStoppedHandlerBox?
@@ -154,6 +179,30 @@ public func chrs_engine_start(
     }
 }
 
+@_cdecl("chrs_engine_start_with_completion_handler")
+public func chrs_engine_start_with_completion_handler(
+    _ rawEngine: UnsafeMutableRawPointer?,
+    _ callback: CHRSEngineCompletionHandler?,
+    _ context: UnsafeMutableRawPointer?,
+    _ dropContext: CHRSContextDrop?
+) {
+    let engineBox = chrsEngineBox(rawEngine)
+    guard let callback else {
+        dropContext?(context)
+        engineBox.engine.start(completionHandler: nil)
+        return
+    }
+    let completionBox = EngineCompletionHandlerBox(
+        callback: callback,
+        context: context,
+        dropContext: dropContext
+    )
+    engineBox.engine.start { [engineBox] error in
+        _ = engineBox
+        completionBox.invoke(error)
+    }
+}
+
 @_cdecl("chrs_engine_stop")
 public func chrs_engine_stop(
     _ rawEngine: UnsafeMutableRawPointer?,
@@ -171,6 +220,30 @@ public func chrs_engine_stop(
         return false
     }
     return true
+}
+
+@_cdecl("chrs_engine_stop_with_completion_handler")
+public func chrs_engine_stop_with_completion_handler(
+    _ rawEngine: UnsafeMutableRawPointer?,
+    _ callback: CHRSEngineCompletionHandler?,
+    _ context: UnsafeMutableRawPointer?,
+    _ dropContext: CHRSContextDrop?
+) {
+    let engineBox = chrsEngineBox(rawEngine)
+    guard let callback else {
+        dropContext?(context)
+        engineBox.engine.stop(completionHandler: nil)
+        return
+    }
+    let completionBox = EngineCompletionHandlerBox(
+        callback: callback,
+        context: context,
+        dropContext: dropContext
+    )
+    engineBox.engine.stop { [engineBox] error in
+        _ = engineBox
+        completionBox.invoke(error)
+    }
 }
 
 @_cdecl("chrs_engine_current_time")

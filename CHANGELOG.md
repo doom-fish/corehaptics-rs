@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1
+
+- Added `HapticEngine::{start_with_completion_handler,start_async,stop_with_completion_handler,stop_async}` so `CHHapticCompletionHandler` is covered by safe Rust closures.
+- Added engine lifecycle example/test coverage for async start/stop completion callbacks.
+- Refreshed coverage docs to reflect full audited macOS coverage.
+
 ## 0.2.0
 
 - Added safe wrappers for `CHHapticEvent`, `CHHapticEventParameter`, `CHHapticDynamicParameter`, and `CHHapticParameterCurve`.

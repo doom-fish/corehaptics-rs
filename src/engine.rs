@@ -7,6 +7,7 @@ use std::{
     panic::{catch_unwind, AssertUnwindSafe},
     path::Path,
     ptr::NonNull,
+    sync::Mutex,
 };
 
 use serde::{Deserialize, Serialize};
@@ -129,6 +130,13 @@ type StoppedHandlerFn = dyn Fn(EngineStoppedReason) + Send + Sync + 'static;
 type ResetHandlerFn = dyn Fn() + Send + Sync + 'static;
 type FinishedHandlerFn =
     dyn Fn(Option<CoreHapticsError>) -> EngineFinishedAction + Send + Sync + 'static;
+type CompletionHandlerFn = dyn FnOnce(Option<CoreHapticsError>) + Send + 'static;
+type CompletionRegistrar = unsafe extern "C" fn(
+    crate::ffi::Object,
+    crate::ffi::EngineCompletionHandler,
+    *mut c_void,
+    crate::ffi::ContextDrop,
+);
 
 struct StoppedHandlerContext {
     callback: Box<StoppedHandlerFn>,
@@ -140,6 +148,11 @@ struct ResetHandlerContext {
 
 struct FinishedHandlerContext {
     callback: Box<FinishedHandlerFn>,
+}
+
+struct CompletionHandlerContext {
+    operation: &'static str,
+    callback: Mutex<Option<Box<CompletionHandlerFn>>>,
 }
 
 unsafe extern "C" fn release_stopped_handler_context(context: *mut c_void) {
@@ -156,6 +169,12 @@ unsafe extern "C" fn release_reset_handler_context(context: *mut c_void) {
 
 unsafe extern "C" fn release_finished_handler_context(context: *mut c_void) {
     if let Some(context) = NonNull::new(context.cast::<FinishedHandlerContext>()) {
+        unsafe { drop(Box::from_raw(context.as_ptr())) };
+    }
+}
+
+unsafe extern "C" fn release_completion_handler_context(context: *mut c_void) {
+    if let Some(context) = NonNull::new(context.cast::<CompletionHandlerContext>()) {
         unsafe { drop(Box::from_raw(context.as_ptr())) };
     }
 }
@@ -197,6 +216,28 @@ unsafe extern "C" fn finished_handler_trampoline(
     )
 }
 
+unsafe extern "C" fn completion_handler_trampoline(
+    context: *mut c_void,
+    error: crate::ffi::Object,
+) {
+    let Some(context) = NonNull::new(context.cast::<CompletionHandlerContext>()) else {
+        return;
+    };
+    let state = unsafe { context.as_ref() };
+    let error = if error.is_null() {
+        None
+    } else {
+        Some(unsafe { error_from_raw(state.operation, error) })
+    };
+    let mut callback = match state.callback.lock() {
+        Ok(callback) => callback,
+        Err(poisoned) => poisoned.into_inner(),
+    };
+    if let Some(callback) = callback.take() {
+        let _ = catch_unwind(AssertUnwindSafe(|| callback(error)));
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct HapticEngine {
     obj: RetainedObject,
@@ -227,16 +268,74 @@ impl HapticEngine {
         self.obj.as_raw()
     }
 
+    fn with_completion_handler<F>(
+        &self,
+        operation: &'static str,
+        registrar: CompletionRegistrar,
+        handler: F,
+    ) where
+        F: FnOnce(Option<CoreHapticsError>) + Send + 'static,
+    {
+        let context = Box::new(CompletionHandlerContext {
+            operation,
+            callback: Mutex::new(Some(Box::new(handler))),
+        });
+        unsafe {
+            registrar(
+                self.as_raw(),
+                Some(completion_handler_trampoline),
+                Box::into_raw(context).cast(),
+                Some(release_completion_handler_context),
+            );
+        }
+    }
+
     pub fn start(&self) -> crate::Result<()> {
         let mut error = core::ptr::null_mut();
         let ok = unsafe { crate::ffi::chrs_engine_start(self.as_raw(), &mut error) };
         unsafe { bool_result(ok, error, "CHHapticEngine.start") }
     }
 
+    pub fn start_with_completion_handler<F>(&self, handler: F)
+    where
+        F: FnOnce(Option<CoreHapticsError>) + Send + 'static,
+    {
+        self.with_completion_handler(
+            "CHHapticEngine.startWithCompletionHandler",
+            crate::ffi::chrs_engine_start_with_completion_handler,
+            handler,
+        );
+    }
+
+    pub fn start_async<F>(&self, handler: F)
+    where
+        F: FnOnce(Option<CoreHapticsError>) + Send + 'static,
+    {
+        self.start_with_completion_handler(handler);
+    }
+
     pub fn stop(&self) -> crate::Result<()> {
         let mut error = core::ptr::null_mut();
         let ok = unsafe { crate::ffi::chrs_engine_stop(self.as_raw(), &mut error) };
         unsafe { bool_result(ok, error, "CHHapticEngine.stop") }
+    }
+
+    pub fn stop_with_completion_handler<F>(&self, handler: F)
+    where
+        F: FnOnce(Option<CoreHapticsError>) + Send + 'static,
+    {
+        self.with_completion_handler(
+            "CHHapticEngine.stopWithCompletionHandler",
+            crate::ffi::chrs_engine_stop_with_completion_handler,
+            handler,
+        );
+    }
+
+    pub fn stop_async<F>(&self, handler: F)
+    where
+        F: FnOnce(Option<CoreHapticsError>) + Send + 'static,
+    {
+        self.stop_with_completion_handler(handler);
     }
 
     #[must_use]
