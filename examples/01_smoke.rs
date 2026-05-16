@@ -7,6 +7,7 @@ fn main() -> corehaptics::Result<()> {
 
     if capability.supports_haptics() {
         let engine = HapticEngine::new()?;
+        engine.set_muted_for_haptics(true);
         engine.start()?;
 
         let pattern = HapticPattern::new(
@@ -19,11 +20,12 @@ fn main() -> corehaptics::Result<()> {
             )],
             &[],
         )?;
-        let _player = engine.create_player(&pattern)?;
-        println!("pattern duration: {:.1}s", pattern.duration());
+        let player = engine.create_player(&pattern)?;
+        player.set_muted(true);
+        println!("pattern duration: {:.3}s", pattern.duration());
         engine.stop()?;
     }
 
-    println!("✅ corehaptics capability + engine OK");
+    println!("✅ corehaptics smoke example OK");
     Ok(())
 }

@@ -10,33 +10,46 @@
 
 mod object;
 
+pub mod advanced_player;
 pub mod capability;
+pub mod dynamic_parameter;
 pub mod engine;
 pub mod error;
+pub mod event;
+pub mod event_parameter;
 pub mod ffi;
+pub mod parameter_curve;
 pub mod pattern;
 pub mod player;
 pub mod types;
 
-pub use capability::DeviceCapability;
-pub use engine::HapticEngine;
-pub use error::{CoreHapticsError, Result};
-pub use pattern::HapticPattern;
-pub use player::PatternPlayer;
-pub use types::{
-    DynamicParameter, DynamicParameterId, HapticEvent, HapticEventParameter, HapticEventType,
-    HapticParameterId,
+pub use advanced_player::AdvancedPatternPlayer;
+pub use capability::{DeviceCapability, ParameterAttributes};
+pub use dynamic_parameter::{DynamicParameter, DynamicParameterId};
+pub use engine::{
+    AudioResourceKey, AudioResourceOptions, EngineFinishedAction, EngineStoppedReason,
+    HapticEngine, HAPTIC_TIME_IMMEDIATE,
 };
+pub use error::{CoreHapticsError, HapticErrorCode, Result, CORE_HAPTICS_ERROR_DOMAIN};
+pub use event::{AudioResourceId, HapticEvent, HapticEventType};
+pub use event_parameter::{HapticEventParameter, HapticParameterId};
+pub use parameter_curve::{ParameterCurve, ParameterCurveControlPoint};
+pub use pattern::{HapticPattern, PatternKey};
+pub use player::PatternPlayer;
 
 /// Common imports.
 pub mod prelude {
-    pub use crate::capability::DeviceCapability;
-    pub use crate::engine::HapticEngine;
-    pub use crate::error::{CoreHapticsError, Result};
-    pub use crate::pattern::HapticPattern;
-    pub use crate::player::PatternPlayer;
-    pub use crate::types::{
-        DynamicParameter, DynamicParameterId, HapticEvent, HapticEventParameter,
-        HapticEventType, HapticParameterId,
+    pub use crate::advanced_player::AdvancedPatternPlayer;
+    pub use crate::capability::{DeviceCapability, ParameterAttributes};
+    pub use crate::dynamic_parameter::{DynamicParameter, DynamicParameterId};
+    pub use crate::engine::{
+        AudioResourceKey, AudioResourceOptions, EngineFinishedAction, EngineStoppedReason,
+        HapticEngine, HAPTIC_TIME_IMMEDIATE,
     };
+    pub use crate::error::{CoreHapticsError, HapticErrorCode, Result, CORE_HAPTICS_ERROR_DOMAIN};
+    pub use crate::event::{AudioResourceId, HapticEvent, HapticEventType};
+    pub use crate::event_parameter::{HapticEventParameter, HapticParameterId};
+    pub use crate::parameter_curve::{ParameterCurve, ParameterCurveControlPoint};
+    pub use crate::pattern::{HapticPattern, PatternKey};
+    pub use crate::player::PatternPlayer;
 }

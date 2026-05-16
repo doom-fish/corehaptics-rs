@@ -1,10 +1,18 @@
 # corehaptics
 
-Safe Rust bindings for Apple's [CoreHaptics](https://developer.apple.com/documentation/corehaptics) framework on macOS — query hardware support, build patterns, start haptic engines, and create pattern players.
+Safe Rust bindings for Apple's [CoreHaptics](https://developer.apple.com/documentation/corehaptics) framework on macOS.
 
-> **Status:** experimental. v0.1 ships hardware capability queries plus safe wrappers for `CHHapticEngine`, `CHHapticPattern`, and `CHHapticPatternPlayer`. The smoke example intentionally avoids starting a player, so it should not emit any user-visible haptic effect.
+> **Status:** v0.2 adds full safe coverage for the macOS CoreHaptics surface: device capability queries, `CHHapticEngine`, `CHHapticPattern`, `CHHapticEvent`, `CHHapticPatternPlayer`, `CHHapticAdvancedPatternPlayer`, `CHHapticDynamicParameter`, `CHHapticParameterCurve`, and `CHHapticEventParameter`.
 
-Swift bridge required — `CoreHaptics` is Objective-C / Swift-first and the safe Rust API is implemented on top of a static Swift helper library.
+The crate uses a static Swift bridge because `CoreHaptics` is Objective-C / Swift-first. All public Rust APIs are safe wrappers over that bridge.
+
+## Highlights
+
+- Query hardware support and parameter ranges with `DeviceCapability`
+- Build `HapticEvent`, `HapticEventParameter`, `DynamicParameter`, and `ParameterCurve` value graphs in pure Rust
+- Create patterns from typed values, AHAP dictionaries, or `.ahap` files
+- Start engines, create normal / advanced players, send live parameters, schedule curves, and register audio resources
+- Install Rust closures for engine and advanced-player completion callbacks
 
 ## Quick start
 
@@ -17,6 +25,7 @@ fn main() -> Result<()> {
 
     if capability.supports_haptics() {
         let engine = HapticEngine::new()?;
+        engine.set_muted_for_haptics(true);
         engine.start()?;
 
         let pattern = HapticPattern::new(
@@ -26,7 +35,11 @@ fn main() -> Result<()> {
             )],
             &[],
         )?;
-        let _player = engine.create_player(&pattern)?;
+
+        let player = engine.create_player(&pattern)?;
+        player.set_muted(true);
+        player.start_immediately()?;
+        player.stop_immediately()?;
         engine.stop()?;
     }
 
@@ -34,39 +47,36 @@ fn main() -> Result<()> {
 }
 ```
 
-## Smoke example
+## Examples
 
 ```bash
 cargo run --example 01_smoke
+cargo run --example 06_pattern
+cargo run --example 09_advanced_pattern_player
 ```
 
-Example output (values vary by machine):
+The numbered examples in `examples/` cover every logical area:
 
-```text
-supports haptics: false
-supports audio: false
-✅ corehaptics capability + engine OK
-```
-
-On Macs with supported hardware, the example also starts/stops an engine and prints the created pattern duration.
+1. smoke / capability
+2. event parameters
+3. dynamic parameters
+4. parameter curves
+5. events
+6. patterns + AHAP import/export
+7. engine lifecycle + callbacks
+8. pattern players
+9. advanced pattern players
 
 ## Notes
 
-- `DeviceCapability::current()` is a light-weight wrapper over `CHHapticEngine.capabilitiesForHardware()`.
-- `HapticPattern::new` serializes Rust event / dynamic-parameter structs into JSON and lets the Swift bridge construct the native `CHHapticPattern` graph.
-- `HapticEngine::stop()` uses a short `DispatchSemaphore` wait in the Swift bridge because the Objective-C API only exposes an asynchronous completion-handler variant.
-- When `supports_haptics()` is `false`, engine creation/playback is skipped entirely; the smoke example still succeeds.
-- The smoke example only creates the player; it does **not** call `PatternPlayer::start_*`.
+- `HapticEngine::new()` fails with `HapticErrorCode::NotSupported` on Macs without internal haptics hardware.
+- Examples and tests mute haptic/audio output wherever possible so they remain headless-safe.
+- `HapticPattern::from_file` uses `CHHapticPattern(contentsOf:)`, which requires macOS 13.0+ at runtime.
+- `CHHapticEngine.initWithAudioSession` is intentionally omitted because `AVAudioSession` is unavailable on macOS.
 
-## Roadmap
+## Coverage
 
-- [x] `DeviceCapability::{current, supports_haptics, supports_audio}`
-- [x] `HapticPattern::new` + typed event / parameter builders
-- [x] `HapticEngine::{new, start, stop, current_time, create_player}`
-- [x] `PatternPlayer::{start, stop, cancel}`
-- [ ] Advanced player wrapper (`CHHapticAdvancedPatternPlayer`)
-- [ ] Engine stopped/reset callback closures
-- [ ] Parameter-attribute queries from `CHHapticDeviceCapability`
+See [`COVERAGE.md`](COVERAGE.md) for the audited framework-to-crate mapping.
 
 ## License
 
