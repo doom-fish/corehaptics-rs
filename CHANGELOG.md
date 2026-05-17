@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0
+
+- Added `async_api` module (gated behind `async` feature) with `AsyncHapticEngine` for `CHHapticEngine.start()`, `CHHapticEngine.stop()`, and `CHHapticEngine.notifyWhenPlayersFinished()`.
+- Added `EngineFuture` and `NotifyPlayersFinishedFuture` types for Tier 1 async operations.
+- Added two async examples (`10_async_engine.rs`, `11_async_players.rs`) and async integration tests.
+- Async API uses `doom-fish-utils` completion pattern for runtime-agnostic futures.
+
 ## 0.2.1
 
 - Added `HapticEngine::{start_with_completion_handler,start_async,stop_with_completion_handler,stop_async}` so `CHHapticCompletionHandler` is covered by safe Rust closures.

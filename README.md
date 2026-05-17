@@ -2,7 +2,7 @@
 
 Safe Rust bindings for Apple's [CoreHaptics](https://developer.apple.com/documentation/corehaptics) framework on macOS.
 
-> **Status:** v0.2.1 reaches full audited safe coverage for the macOS CoreHaptics surface, including async engine lifecycle callbacks.
+> **Status:** v0.3.0 reaches full audited safe coverage for the macOS CoreHaptics surface, including async engine lifecycle callbacks and Tier 1 async futures.
 
 The crate uses a static Swift bridge because `CoreHaptics` is Objective-C / Swift-first. All public Rust APIs are safe wrappers over that bridge.
 
@@ -13,6 +13,7 @@ The crate uses a static Swift bridge because `CoreHaptics` is Objective-C / Swif
 - Create patterns from typed values, AHAP dictionaries, or `.ahap` files
 - Start engines synchronously or asynchronously, create normal / advanced players, send live parameters, schedule curves, and register audio resources
 - Install Rust closures for engine start/stop, engine finished, and advanced-player completion callbacks
+- **Async API**: Executor-agnostic futures for `CHHapticEngine.start()`, `stop()`, and `notifyWhenPlayersFinished()` (gated behind `async` feature)
 
 ## Quick start
 
@@ -53,6 +54,8 @@ fn main() -> Result<()> {
 cargo run --example 01_smoke
 cargo run --example 06_pattern
 cargo run --example 09_advanced_pattern_player
+cargo run --example 10_async_engine --features async
+cargo run --example 11_async_players --features async
 ```
 
 The numbered examples in `examples/` cover every logical area:
@@ -66,6 +69,31 @@ The numbered examples in `examples/` cover every logical area:
 7. engine lifecycle + sync/async callbacks
 8. pattern players
 9. advanced pattern players
+10. async engine operations (requires `async` feature)
+11. async player operations (requires `async` feature)
+
+## Async API
+
+The `async` feature provides executor-agnostic futures for common engine operations:
+
+```rust,no_run
+use corehaptics::prelude::*;
+use corehaptics::async_api::AsyncHapticEngine;
+
+async fn example() -> Result<()> {
+    let capability = DeviceCapability::current()?;
+    if !capability.supports_haptics() {
+        return Ok(());
+    }
+    let engine = HapticEngine::new()?;
+    AsyncHapticEngine::start(&engine).await?;
+    // ... play patterns ...
+    AsyncHapticEngine::stop(&engine).await?;
+    Ok(())
+}
+```
+
+See [`async_api`](src/async_api.rs) for documentation on all available futures.
 
 ## Notes
 

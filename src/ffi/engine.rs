@@ -7,6 +7,10 @@ pub type EngineResetHandler = Option<unsafe extern "C" fn(*mut c_void)>;
 pub type EngineFinishedHandler = Option<unsafe extern "C" fn(*mut c_void, Object) -> i32>;
 pub type EngineCompletionHandler = Option<unsafe extern "C" fn(*mut c_void, Object)>;
 
+// Async callback signature for doom-fish-utils completion pattern
+pub type AsyncCompletionCallback =
+    unsafe extern "C" fn(*const c_void, *const c_char, *mut c_void);
+
 unsafe extern "C" {
     pub fn chrs_engine_create(error_out: *mut Object) -> Object;
     pub fn chrs_engine_start(engine: Object, error_out: *mut Object) -> bool;
@@ -90,5 +94,22 @@ unsafe extern "C" {
         callback: EngineFinishedHandler,
         context: *mut c_void,
         drop_context: ContextDrop,
+    );
+
+    // Async API (doom-fish-utils completion pattern)
+    pub fn chrs_engine_start_async(
+        engine: Object,
+        cb: AsyncCompletionCallback,
+        ctx: *mut c_void,
+    );
+    pub fn chrs_engine_stop_async(
+        engine: Object,
+        cb: AsyncCompletionCallback,
+        ctx: *mut c_void,
+    );
+    pub fn chrs_engine_notify_when_players_finished_async(
+        engine: Object,
+        cb: AsyncCompletionCallback,
+        ctx: *mut c_void,
     );
 }

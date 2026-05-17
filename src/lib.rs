@@ -23,6 +23,9 @@ pub mod pattern;
 pub mod player;
 pub mod types;
 
+#[cfg(feature = "async")]
+pub mod async_api;
+
 pub use advanced_player::AdvancedPatternPlayer;
 pub use capability::{DeviceCapability, ParameterAttributes};
 pub use dynamic_parameter::{DynamicParameter, DynamicParameterId};
