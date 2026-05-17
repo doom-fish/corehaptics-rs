@@ -93,6 +93,7 @@ use crate::HapticEngine;
 use doom_fish_utils::completion::{
     error_from_cstr, AsyncCompletion, AsyncCompletionFuture,
 };
+use doom_fish_utils::panic_safe::catch_user_panic;
 use std::ffi::c_void;
 use std::future::Future;
 use std::pin::Pin;
@@ -145,12 +146,19 @@ extern "C" fn engine_start_callback(
     error: *const i8,
     ctx: *mut c_void,
 ) {
-    if error.is_null() {
-        unsafe { AsyncCompletion::<()>::complete_ok(ctx, ()) };
-    } else {
-        let msg = unsafe { error_from_cstr(error) };
-        unsafe { AsyncCompletion::<()>::complete_err(ctx, msg) };
-    }
+    // SAFETY: This is called from Swift FFI and must not panic across the boundary.
+    // We wrap the entire callback in catch_user_panic to prevent UB.
+    catch_user_panic("engine_start_callback", || {
+        if error.is_null() {
+            // SAFETY: ctx is a valid pointer from AsyncCompletion::create().
+            unsafe { AsyncCompletion::<()>::complete_ok(ctx, ()) };
+        } else {
+            // SAFETY: error is a valid C string pointer from the Swift bridge.
+            let msg = unsafe { error_from_cstr(error) };
+            // SAFETY: ctx is a valid pointer from AsyncCompletion::create().
+            unsafe { AsyncCompletion::<()>::complete_err(ctx, msg) };
+        }
+    });
 }
 
 extern "C" fn engine_stop_callback(
@@ -158,12 +166,19 @@ extern "C" fn engine_stop_callback(
     error: *const i8,
     ctx: *mut c_void,
 ) {
-    if error.is_null() {
-        unsafe { AsyncCompletion::<()>::complete_ok(ctx, ()) };
-    } else {
-        let msg = unsafe { error_from_cstr(error) };
-        unsafe { AsyncCompletion::<()>::complete_err(ctx, msg) };
-    }
+    // SAFETY: This is called from Swift FFI and must not panic across the boundary.
+    // We wrap the entire callback in catch_user_panic to prevent UB.
+    catch_user_panic("engine_stop_callback", || {
+        if error.is_null() {
+            // SAFETY: ctx is a valid pointer from AsyncCompletion::create().
+            unsafe { AsyncCompletion::<()>::complete_ok(ctx, ()) };
+        } else {
+            // SAFETY: error is a valid C string pointer from the Swift bridge.
+            let msg = unsafe { error_from_cstr(error) };
+            // SAFETY: ctx is a valid pointer from AsyncCompletion::create().
+            unsafe { AsyncCompletion::<()>::complete_err(ctx, msg) };
+        }
+    });
 }
 
 extern "C" fn notify_players_finished_callback(
@@ -171,12 +186,19 @@ extern "C" fn notify_players_finished_callback(
     error: *const i8,
     ctx: *mut c_void,
 ) {
-    if error.is_null() {
-        unsafe { AsyncCompletion::<()>::complete_ok(ctx, ()) };
-    } else {
-        let msg = unsafe { error_from_cstr(error) };
-        unsafe { AsyncCompletion::<()>::complete_err(ctx, msg) };
-    }
+    // SAFETY: This is called from Swift FFI and must not panic across the boundary.
+    // We wrap the entire callback in catch_user_panic to prevent UB.
+    catch_user_panic("notify_players_finished_callback", || {
+        if error.is_null() {
+            // SAFETY: ctx is a valid pointer from AsyncCompletion::create().
+            unsafe { AsyncCompletion::<()>::complete_ok(ctx, ()) };
+        } else {
+            // SAFETY: error is a valid C string pointer from the Swift bridge.
+            let msg = unsafe { error_from_cstr(error) };
+            // SAFETY: ctx is a valid pointer from AsyncCompletion::create().
+            unsafe { AsyncCompletion::<()>::complete_err(ctx, msg) };
+        }
+    });
 }
 
 // ============================================================================
@@ -194,6 +216,8 @@ impl AsyncHapticEngine {
     /// Returns an error if the engine is already running or if the operation fails.
     pub fn start(engine: &HapticEngine) -> EngineFuture {
         let (future, ctx) = AsyncCompletion::create();
+        // SAFETY: engine.as_raw() is a valid engine pointer, engine_start_callback is a valid
+        // callback, and ctx is a valid completion context from AsyncCompletion::create().
         unsafe {
             crate::ffi::chrs_engine_start_async(
                 engine.as_raw(),
@@ -211,6 +235,8 @@ impl AsyncHapticEngine {
     /// Returns an error if the engine is not running or if the operation fails.
     pub fn stop(engine: &HapticEngine) -> EngineFuture {
         let (future, ctx) = AsyncCompletion::create();
+        // SAFETY: engine.as_raw() is a valid engine pointer, engine_stop_callback is a valid
+        // callback, and ctx is a valid completion context from AsyncCompletion::create().
         unsafe {
             crate::ffi::chrs_engine_stop_async(
                 engine.as_raw(),
@@ -233,6 +259,8 @@ impl AsyncHapticEngine {
         engine: &HapticEngine,
     ) -> NotifyPlayersFinishedFuture {
         let (future, ctx) = AsyncCompletion::create();
+        // SAFETY: engine.as_raw() is a valid engine pointer, notify_players_finished_callback
+        // is a valid callback, and ctx is a valid completion context from AsyncCompletion::create().
         unsafe {
             crate::ffi::chrs_engine_notify_when_players_finished_async(
                 engine.as_raw(),

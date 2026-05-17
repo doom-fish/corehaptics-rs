@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.1
+
+- Fixed async callback safety: wrapped `engine_start_callback`, `engine_stop_callback`, and `notify_players_finished_callback` with `catch_user_panic` to prevent UB if closure panics across the FFI boundary.
+- Added explicit SAFETY comments to all unsafe blocks in async callbacks and async API functions.
+
 ## 0.3.0
 
 - Added `async_api` module (gated behind `async` feature) with `AsyncHapticEngine` for `CHHapticEngine.start()`, `CHHapticEngine.stop()`, and `CHHapticEngine.notifyWhenPlayersFinished()`.
