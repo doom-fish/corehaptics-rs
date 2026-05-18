@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.3.2] - 2026-05-18
+
+- Widen doom-fish-utils version bound to `<0.3` so 0.2.x resolves.
+
 ## 0.3.1
 
 - Fixed async callback safety: wrapped `engine_start_callback`, `engine_stop_callback`, and `notify_players_finished_callback` with `catch_user_panic` to prevent UB if closure panics across the FFI boundary.
