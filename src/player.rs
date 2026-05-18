@@ -8,6 +8,7 @@ use crate::{
     parameter_curve::ParameterCurve,
 };
 
+/// A `CHHapticPatternPlayer` wrapper for scheduled pattern playback.
 #[derive(Debug, Clone)]
 pub struct PatternPlayer {
     obj: RetainedObject,
@@ -108,11 +109,13 @@ impl PatternPlayer {
         self.schedule_parameter_curve(parameter_curve, crate::HAPTIC_TIME_IMMEDIATE)
     }
 
+    /// Returns whether the player is muted.
     #[must_use]
     pub fn is_muted(&self) -> bool {
         unsafe { crate::ffi::chrs_player_is_muted(self.as_raw()) }
     }
 
+    /// Mutes or unmutes the player.
     pub fn set_muted(&self, muted: bool) {
         unsafe { crate::ffi::chrs_player_set_muted(self.as_raw(), muted) };
     }

@@ -26,11 +26,14 @@ pub const HAPTIC_TIME_IMMEDIATE: f64 = 0.0;
 /// Keys used by `CHHapticEngine.registerAudioResource(_:options:)`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum AudioResourceKey {
+    /// Uses the source file's volume envelope during playback.
     UseVolumeEnvelope,
+    /// Loops the registered audio resource during playback.
     LoopEnabled,
 }
 
 impl AudioResourceKey {
+    /// Returns the bridge option key string.
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
@@ -51,6 +54,7 @@ pub struct AudioResourceOptions {
 }
 
 impl AudioResourceOptions {
+    /// Creates an empty audio-resource options set.
     #[must_use]
     pub const fn new() -> Self {
         Self {
@@ -59,23 +63,27 @@ impl AudioResourceOptions {
         }
     }
 
+    /// Sets whether the resource should use its volume envelope.
     #[must_use]
     pub const fn with_use_volume_envelope(mut self, enabled: bool) -> Self {
         self.use_volume_envelope = Some(enabled);
         self
     }
 
+    /// Sets whether the resource should loop.
     #[must_use]
     pub const fn with_loop_enabled(mut self, enabled: bool) -> Self {
         self.loop_enabled = Some(enabled);
         self
     }
 
+    /// Returns the volume-envelope option.
     #[must_use]
     pub const fn use_volume_envelope(&self) -> Option<bool> {
         self.use_volume_envelope
     }
 
+    /// Returns the looping option.
     #[must_use]
     pub const fn loop_enabled(&self) -> Option<bool> {
         self.loop_enabled
@@ -85,7 +93,9 @@ impl AudioResourceOptions {
 /// Actions returned by `notify_when_players_finished`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum EngineFinishedAction {
+    /// Stops the engine after all players finish.
     StopEngine,
+    /// Leaves the engine running after all players finish.
     LeaveEngineRunning,
 }
 
@@ -101,13 +111,21 @@ impl EngineFinishedAction {
 /// Stop reasons delivered to the engine stopped handler.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum EngineStoppedReason {
+    /// The audio session was interrupted.
     AudioSessionInterrupt,
+    /// The application was suspended.
     ApplicationSuspended,
+    /// The engine stopped after an idle timeout.
     IdleTimeout,
+    /// The engine stopped because players finished.
     NotifyWhenFinished,
+    /// The engine instance was destroyed.
     EngineDestroyed,
+    /// A game controller disconnected.
     GameControllerDisconnect,
+    /// The framework reported a system error.
     SystemError,
+    /// The framework reported an unknown stop-reason code.
     Unknown(i32),
 }
 
@@ -238,6 +256,7 @@ unsafe extern "C" fn completion_handler_trampoline(
     }
 }
 
+/// A `CHHapticEngine` wrapper for creating players and managing playback state.
 #[derive(Debug, Clone)]
 pub struct HapticEngine {
     obj: RetainedObject,
@@ -290,12 +309,14 @@ impl HapticEngine {
         }
     }
 
+    /// Starts the engine.
     pub fn start(&self) -> crate::Result<()> {
         let mut error = core::ptr::null_mut();
         let ok = unsafe { crate::ffi::chrs_engine_start(self.as_raw(), &mut error) };
         unsafe { bool_result(ok, error, "CHHapticEngine.start") }
     }
 
+    /// Starts the engine and invokes a completion handler when finished.
     pub fn start_with_completion_handler<F>(&self, handler: F)
     where
         F: FnOnce(Option<CoreHapticsError>) + Send + 'static,
@@ -307,6 +328,7 @@ impl HapticEngine {
         );
     }
 
+    /// Alias for `start_with_completion_handler`.
     pub fn start_async<F>(&self, handler: F)
     where
         F: FnOnce(Option<CoreHapticsError>) + Send + 'static,
@@ -314,12 +336,14 @@ impl HapticEngine {
         self.start_with_completion_handler(handler);
     }
 
+    /// Stops the engine.
     pub fn stop(&self) -> crate::Result<()> {
         let mut error = core::ptr::null_mut();
         let ok = unsafe { crate::ffi::chrs_engine_stop(self.as_raw(), &mut error) };
         unsafe { bool_result(ok, error, "CHHapticEngine.stop") }
     }
 
+    /// Stops the engine and invokes a completion handler when finished.
     pub fn stop_with_completion_handler<F>(&self, handler: F)
     where
         F: FnOnce(Option<CoreHapticsError>) + Send + 'static,
@@ -331,6 +355,7 @@ impl HapticEngine {
         );
     }
 
+    /// Alias for `stop_with_completion_handler`.
     pub fn stop_async<F>(&self, handler: F)
     where
         F: FnOnce(Option<CoreHapticsError>) + Send + 'static,
@@ -338,56 +363,68 @@ impl HapticEngine {
         self.stop_with_completion_handler(handler);
     }
 
+    /// Returns the current engine time in seconds.
     #[must_use]
     pub fn current_time(&self) -> f64 {
         unsafe { crate::ffi::chrs_engine_current_time(self.as_raw()) }
     }
 
+    /// Returns whether the engine plays only haptics.
     #[must_use]
     pub fn plays_haptics_only(&self) -> bool {
         unsafe { crate::ffi::chrs_engine_plays_haptics_only(self.as_raw()) }
     }
 
+    /// Configures whether the engine plays only haptics.
     pub fn set_plays_haptics_only(&self, enabled: bool) {
         unsafe { crate::ffi::chrs_engine_set_plays_haptics_only(self.as_raw(), enabled) };
     }
 
+    /// Returns whether the engine plays only audio.
     #[must_use]
     pub fn plays_audio_only(&self) -> bool {
         unsafe { crate::ffi::chrs_engine_plays_audio_only(self.as_raw()) }
     }
 
+    /// Configures whether the engine plays only audio.
     pub fn set_plays_audio_only(&self, enabled: bool) {
         unsafe { crate::ffi::chrs_engine_set_plays_audio_only(self.as_raw(), enabled) };
     }
 
+    /// Returns whether audio output is muted.
     #[must_use]
     pub fn is_muted_for_audio(&self) -> bool {
         unsafe { crate::ffi::chrs_engine_is_muted_for_audio(self.as_raw()) }
     }
 
+    /// Mutes or unmutes audio output.
     pub fn set_muted_for_audio(&self, enabled: bool) {
         unsafe { crate::ffi::chrs_engine_set_muted_for_audio(self.as_raw(), enabled) };
     }
 
+    /// Returns whether haptic output is muted.
     #[must_use]
     pub fn is_muted_for_haptics(&self) -> bool {
         unsafe { crate::ffi::chrs_engine_is_muted_for_haptics(self.as_raw()) }
     }
 
+    /// Mutes or unmutes haptic output.
     pub fn set_muted_for_haptics(&self, enabled: bool) {
         unsafe { crate::ffi::chrs_engine_set_muted_for_haptics(self.as_raw(), enabled) };
     }
 
+    /// Returns whether automatic shutdown is enabled.
     #[must_use]
     pub fn auto_shutdown_enabled(&self) -> bool {
         unsafe { crate::ffi::chrs_engine_auto_shutdown_enabled(self.as_raw()) }
     }
 
+    /// Enables or disables automatic shutdown.
     pub fn set_auto_shutdown_enabled(&self, enabled: bool) {
         unsafe { crate::ffi::chrs_engine_set_auto_shutdown_enabled(self.as_raw(), enabled) };
     }
 
+    /// Creates a basic pattern player for the given pattern.
     pub fn create_player(&self, pattern: &HapticPattern) -> crate::Result<PatternPlayer> {
         let mut error = core::ptr::null_mut();
         let raw = unsafe {
@@ -409,6 +446,7 @@ impl HapticEngine {
         Ok(player)
     }
 
+    /// Creates an advanced pattern player for the given pattern.
     pub fn create_advanced_player(
         &self,
         pattern: &HapticPattern,
@@ -437,6 +475,7 @@ impl HapticEngine {
         Ok(player)
     }
 
+    /// Registers an audio resource and returns its identifier.
     pub fn register_audio_resource(
         &self,
         path: impl AsRef<Path>,
@@ -460,6 +499,7 @@ impl HapticEngine {
         Ok(resource_id)
     }
 
+    /// Unregisters a previously registered audio resource.
     pub fn unregister_audio_resource(
         &self,
         resource_id: crate::AudioResourceId,
@@ -475,6 +515,7 @@ impl HapticEngine {
         unsafe { bool_result(ok, error, "CHHapticEngine.unregisterAudioResource") }
     }
 
+    /// Plays an AHAP pattern from a file path.
     pub fn play_pattern_from_file(&self, path: impl AsRef<Path>) -> crate::Result<()> {
         let path = path_c_string(path.as_ref())?;
         let mut error = core::ptr::null_mut();
@@ -484,6 +525,7 @@ impl HapticEngine {
         unsafe { bool_result(ok, error, "CHHapticEngine.playPattern(from: URL)") }
     }
 
+    /// Plays an AHAP pattern from raw bytes.
     pub fn play_pattern_from_data(&self, data: &[u8]) -> crate::Result<()> {
         let mut error = core::ptr::null_mut();
         let ok = unsafe {
@@ -497,6 +539,7 @@ impl HapticEngine {
         unsafe { bool_result(ok, error, "CHHapticEngine.playPattern(from: Data)") }
     }
 
+    /// Registers a handler for engine stop events.
     pub fn set_stopped_handler<F>(&self, handler: F)
     where
         F: Fn(EngineStoppedReason) + Send + Sync + 'static,
@@ -514,10 +557,12 @@ impl HapticEngine {
         }
     }
 
+    /// Clears the engine stopped handler.
     pub fn clear_stopped_handler(&self) {
         unsafe { crate::ffi::chrs_engine_clear_stopped_handler(self.as_raw()) };
     }
 
+    /// Registers a handler for engine reset events.
     pub fn set_reset_handler<F>(&self, handler: F)
     where
         F: Fn() + Send + Sync + 'static,
@@ -535,10 +580,12 @@ impl HapticEngine {
         }
     }
 
+    /// Clears the engine reset handler.
     pub fn clear_reset_handler(&self) {
         unsafe { crate::ffi::chrs_engine_clear_reset_handler(self.as_raw()) };
     }
 
+    /// Registers a handler that runs when all players finish.
     pub fn notify_when_players_finished<F>(&self, handler: F)
     where
         F: Fn(Option<CoreHapticsError>) -> EngineFinishedAction + Send + Sync + 'static,

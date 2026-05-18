@@ -2,6 +2,7 @@
 
 use core::fmt;
 
+/// A crate-local result type for `CoreHaptics` operations.
 pub type Result<T> = std::result::Result<T, CoreHapticsError>;
 
 /// The `CoreHaptics` `NSErrorDomain`.
@@ -11,33 +12,58 @@ pub const CORE_HAPTICS_ERROR_DOMAIN: &str = "com.apple.CoreHaptics";
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(isize)]
 pub enum HapticErrorCode {
+    /// The engine is not running.
     EngineNotRunning = -4805,
+    /// The requested operation is not permitted.
     OperationNotPermitted = -4806,
+    /// Starting the engine timed out.
     EngineStartTimeout = -4808,
+    /// The current device does not support the requested feature.
     NotSupported = -4809,
+    /// The haptics server failed to initialize.
     ServerInitFailed = -4810,
+    /// The haptics server was interrupted.
     ServerInterrupted = -4811,
+    /// The pattern player handle is invalid.
     InvalidPatternPlayer = -4812,
+    /// The pattern data is invalid.
     InvalidPatternData = -4813,
+    /// The pattern dictionary is invalid.
     InvalidPatternDictionary = -4814,
+    /// The audio session is invalid.
     InvalidAudioSession = -4815,
+    /// An engine parameter is invalid.
     InvalidEngineParameter = -4816,
+    /// A parameter type is invalid.
     InvalidParameterType = -4820,
+    /// An event type is invalid.
     InvalidEventType = -4821,
+    /// An event time is invalid.
     InvalidEventTime = -4822,
+    /// An event duration is invalid.
     InvalidEventDuration = -4823,
+    /// An audio resource is invalid.
     InvalidAudioResource = -4824,
+    /// A requested resource is unavailable.
     ResourceNotAvailable = -4825,
+    /// An event entry is malformed.
     BadEventEntry = -4830,
+    /// A parameter entry is malformed.
     BadParameterEntry = -4831,
+    /// A time value is invalid.
     InvalidTime = -4840,
+    /// A referenced file could not be found.
     FileNotFound = -4851,
+    /// The device has insufficient power.
     InsufficientPower = -4897,
+    /// The framework reported an unknown error.
     UnknownError = -4898,
+    /// The framework reported a memory error.
     MemoryError = -4899,
 }
 
 impl HapticErrorCode {
+    /// Converts a raw `CoreHaptics` error code into a typed variant.
     #[must_use]
     pub const fn from_code(code: isize) -> Option<Self> {
         match code {
@@ -102,24 +128,37 @@ impl fmt::Display for HapticErrorCode {
     }
 }
 
+/// Errors returned by safe `CoreHaptics` wrapper APIs.
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum CoreHapticsError {
+    /// A bridge call unexpectedly returned `NULL`.
     UnexpectedNull(&'static str),
+    /// An operation failed without an accompanying `NSError`.
     OperationFailed(&'static str),
+    /// An Objective-C operation returned an `NSError`.
     ObjectiveCError {
+        /// The operation that failed.
         operation: &'static str,
+        /// The raw `NSError` code.
         code: isize,
+        /// The `NSError` domain.
         domain: String,
+        /// The localized error description.
         description: String,
+        /// The typed `CoreHaptics` error code when available.
         haptic_error_code: Option<HapticErrorCode>,
     },
+    /// An argument failed local validation.
     InvalidArgument(String),
+    /// File I/O failed.
     Io(std::io::Error),
+    /// JSON serialization or deserialization failed.
     Json(serde_json::Error),
 }
 
 impl CoreHapticsError {
+    /// Returns the typed `CoreHaptics` error code when one is available.
     #[must_use]
     pub const fn haptic_error_code(&self) -> Option<HapticErrorCode> {
         match self {

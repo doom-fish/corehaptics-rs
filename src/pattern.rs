@@ -13,6 +13,7 @@ use crate::{
     parameter_curve::ParameterCurve,
 };
 
+/// A native `CHHapticPattern` built from Rust or AHAP definitions.
 #[derive(Debug, Clone)]
 pub struct HapticPattern {
     obj: RetainedObject,
@@ -22,26 +23,43 @@ const fn slice_is_empty<T>(slice: &[T]) -> bool {
     slice.is_empty()
 }
 
+/// String keys used by AHAP pattern dictionaries.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PatternKey {
+    /// The top-level AHAP version key.
     Version,
+    /// The top-level pattern array key.
     Pattern,
+    /// An event entry key.
     Event,
+    /// The event-type key.
     EventType,
+    /// The event start-time key.
     Time,
+    /// The event duration key.
     EventDuration,
+    /// The custom audio waveform path key.
     EventWaveformPath,
+    /// The event-parameters array key.
     EventParameters,
+    /// The waveform volume-envelope option key.
     EventWaveformUseVolumeEnvelope,
+    /// The waveform loop-enabled option key.
     EventWaveformLoopEnabled,
+    /// A dynamic-parameter entry key.
     Parameter,
+    /// The parameter identifier key.
     ParameterId,
+    /// The parameter value key.
     ParameterValue,
+    /// A parameter-curve entry key.
     ParameterCurve,
+    /// The parameter-curve control-points key.
     ParameterCurveControlPoints,
 }
 
 impl PatternKey {
+    /// Returns the AHAP dictionary key string.
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
@@ -183,6 +201,7 @@ impl HapticPattern {
         self.obj.as_raw()
     }
 
+    /// Returns the pattern duration in seconds.
     #[must_use]
     pub fn duration(&self) -> f64 {
         unsafe { crate::ffi::chrs_pattern_duration(self.as_raw()) }

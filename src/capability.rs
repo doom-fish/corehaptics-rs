@@ -18,6 +18,7 @@ pub struct ParameterAttributes {
 }
 
 impl ParameterAttributes {
+    /// Creates a new parameter-attribute range.
     #[must_use]
     pub const fn new(min_value: f32, max_value: f32, default_value: f32) -> Self {
         Self {
@@ -27,22 +28,26 @@ impl ParameterAttributes {
         }
     }
 
+    /// Returns the minimum supported value.
     #[must_use]
     pub const fn min_value(&self) -> f32 {
         self.min
     }
 
+    /// Returns the maximum supported value.
     #[must_use]
     pub const fn max_value(&self) -> f32 {
         self.max
     }
 
+    /// Returns the default value.
     #[must_use]
     pub const fn default_value(&self) -> f32 {
         self.default
     }
 }
 
+/// A snapshot of the current device's `CoreHaptics` capabilities.
 #[derive(Debug, Clone)]
 pub struct DeviceCapability {
     obj: RetainedObject,
@@ -75,11 +80,13 @@ impl DeviceCapability {
         self.obj.as_raw()
     }
 
+    /// Returns whether the current device supports haptics.
     #[must_use]
     pub fn supports_haptics(&self) -> bool {
         unsafe { crate::ffi::chrs_capability_supports_haptics(self.as_raw()) }
     }
 
+    /// Returns whether the current device supports audio playback.
     #[must_use]
     pub fn supports_audio(&self) -> bool {
         unsafe { crate::ffi::chrs_capability_supports_audio(self.as_raw()) }

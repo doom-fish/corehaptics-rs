@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.3.3] - 2026-05-18
+
+- Completed a public API doc pass across non-generated `src/` modules and raised rustdoc coverage for non-generated source to 100.0% (360/360 items).
+
 ## [0.3.2] - 2026-05-18
 
 - Widen doom-fish-utils version bound to `<0.3` so 0.2.x resolves.
