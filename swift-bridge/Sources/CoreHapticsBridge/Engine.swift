@@ -114,13 +114,31 @@ final class EngineBox: NSObject {
     let engine: CHHapticEngine
     var stoppedHandlerBox: EngineStoppedHandlerBox?
     var resetHandlerBox: EngineResetHandlerBox?
-    var finishedHandlerBox: EngineFinishedHandlerBox?
+    private let finishedHandlerLock = NSLock()
+    private var finishedHandlerBox: EngineFinishedHandlerBox?
 
     init(_ engine: CHHapticEngine) {
         self.engine = engine
         super.init()
         engine.stoppedHandler = { _ in }
         engine.resetHandler = {}
+    }
+
+    func replaceFinishedHandlerBox(_ box: EngineFinishedHandlerBox?) -> EngineFinishedHandlerBox? {
+        finishedHandlerLock.lock()
+        defer { finishedHandlerLock.unlock() }
+        let previous = finishedHandlerBox
+        finishedHandlerBox = box
+        return previous
+    }
+
+    func takeFinishedHandlerBox(ifIdenticalTo box: EngineFinishedHandlerBox) -> EngineFinishedHandlerBox? {
+        finishedHandlerLock.lock()
+        defer { finishedHandlerLock.unlock() }
+        guard finishedHandlerBox === box else { return nil }
+        let previous = finishedHandlerBox
+        finishedHandlerBox = nil
+        return previous
     }
 
     deinit {
@@ -485,7 +503,7 @@ public func chrs_engine_notify_when_players_finished(
 ) {
     let engineBox = chrsEngineBox(rawEngine)
     guard let callback else {
-        engineBox.finishedHandlerBox = nil
+        _ = engineBox.replaceFinishedHandlerBox(nil)
         return
     }
     let finishedHandlerBox = EngineFinishedHandlerBox(
@@ -493,10 +511,10 @@ public func chrs_engine_notify_when_players_finished(
         context: context,
         dropContext: dropContext
     )
-    engineBox.finishedHandlerBox = finishedHandlerBox
+    _ = engineBox.replaceFinishedHandlerBox(finishedHandlerBox)
     engineBox.engine.notifyWhenPlayersFinished { [weak engineBox] error in
         let action = finishedHandlerBox.invoke(error)
-        engineBox?.finishedHandlerBox = nil
+        _ = engineBox?.takeFinishedHandlerBox(ifIdenticalTo: finishedHandlerBox)
         return action
     }
 }
