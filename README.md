@@ -6,6 +6,13 @@ Safe Rust bindings for Apple's [CoreHaptics](https://developer.apple.com/documen
 
 The crate uses a static Swift bridge because `CoreHaptics` is Objective-C / Swift-first. The public Rust APIs are safe wrappers over that bridge, except `HapticEngine::from_device_haptics`, which takes a raw Objective-C pointer, and the raw `ffi` module.
 
+## Installation
+
+```toml
+[dependencies]
+corehaptics = "0.4"
+```
+
 ## Highlights
 
 - Query hardware support and parameter ranges with `DeviceCapability`

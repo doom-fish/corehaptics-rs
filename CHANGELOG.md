@@ -1,5 +1,34 @@
 # Changelog
 
+All notable changes to `corehaptics` are documented here.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.4.0] - Unreleased
+
+### Fixed
+
+- The players-finished callback cleared the engine's stored handler box from the CoreHaptics queue while another thread could be replacing it, an unsynchronized swap of a strong reference. The swap is now locked, and a finished callback only clears the box it registered.
+- `HapticEngine::stop()` waited for CoreHaptics without a timeout and wrote the result from the completion thread without synchronization. It now waits at most 5 seconds, returns `CoreHapticsError::Timeout` when CoreHaptics does not answer, and passes the result through lock-protected state.
+- Paths that are not valid UTF-8 were silently rewritten with `to_string_lossy`, so `HapticPattern::from_file`, `HapticEngine::play_pattern_from_file` and `HapticEngine::register_audio_resource` could open a different file. Such paths are now rejected with `CoreHapticsError::InvalidArgument`; Foundation file URLs cannot represent them.
+- The async API tests now assert on both the no-haptics path and the playback path.
+
+### Changed
+
+- `CoreHapticsError` has a new `Timeout` variant.
+- The Swift bridge links `GameController`.
+- Depends on `doom-fish-utils` `>=0.4.1, <0.5` for the `async` feature.
+- `rust-version` is now 1.82 (was 1.76).
+
+### Added
+
+- `HapticEngine::from_device_haptics` and `ControllerHapticsLocality`, which create an engine for a game controller from a raw `GCDeviceHaptics` pointer through `GCDeviceHaptics.createEngine(withLocality:)` (macOS 11 or later).
+
+### Removed
+
+- The unused `CoreHapticsBridge.h` header, which no longer matched the bridge.
+
 ## [0.3.4] - 2026-05-20
 
 - Widen `doom-fish-utils` dependency bound to `<0.4` so the 0.3.x SPSC-ring release resolves cleanly. No source changes.
