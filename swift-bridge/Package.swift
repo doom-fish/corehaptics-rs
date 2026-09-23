@@ -12,8 +12,7 @@ let package = Package(
     targets: [
         .target(
             name: "CoreHapticsBridge",
-            path: "Sources/CoreHapticsBridge",
-            publicHeadersPath: "include"
+            path: "Sources/CoreHapticsBridge"
         ),
     ]
 )
