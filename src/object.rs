@@ -110,5 +110,45 @@ pub fn c_string(value: &str) -> crate::Result<CString> {
 }
 
 pub fn path_c_string(path: &Path) -> crate::Result<CString> {
-    c_string(&path.to_string_lossy())
+    let Some(utf8) = path.to_str() else {
+        return Err(CoreHapticsError::InvalidArgument(format!(
+            "path is not valid UTF-8 and cannot be passed to a file URL: {}",
+            path.display()
+        )));
+    };
+    c_string(utf8)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::path_c_string;
+    use crate::CoreHapticsError;
+    use std::ffi::OsStr;
+    use std::os::unix::ffi::OsStrExt;
+    use std::path::Path;
+
+    #[test]
+    fn utf8_path_bytes_are_preserved() {
+        let path = Path::new("patterns/haptic \u{e9}v\u{e9}nement.ahap");
+        let converted = path_c_string(path).expect("UTF-8 path without NUL");
+        assert_eq!(converted.as_bytes(), path.as_os_str().as_bytes());
+    }
+
+    #[test]
+    fn non_utf8_paths_are_rejected_instead_of_rewritten() {
+        let path = Path::new(OsStr::from_bytes(b"patterns/haptic-\xff.ahap"));
+        assert!(matches!(
+            path_c_string(path),
+            Err(CoreHapticsError::InvalidArgument(_))
+        ));
+    }
+
+    #[test]
+    fn interior_nul_paths_are_rejected() {
+        let path = Path::new(OsStr::from_bytes(b"bad\0path.ahap"));
+        assert!(matches!(
+            path_c_string(path),
+            Err(CoreHapticsError::InvalidArgument(_))
+        ));
+    }
 }
