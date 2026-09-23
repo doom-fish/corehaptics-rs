@@ -1,105 +1,79 @@
 #![cfg(feature = "async")]
-/// Tests for the `async_api` module.
-use corehaptics::prelude::*;
+
 use corehaptics::async_api::AsyncHapticEngine;
+use corehaptics::prelude::*;
 
-#[test]
-fn test_async_engine_start_and_stop() {
-    pollster::block_on(async {
-        let capability = DeviceCapability::current().expect("failed to query capability");
-        if !capability.supports_haptics() {
-            println!("skipping test on non-haptic hardware");
-            return;
+const fn assert_send<T: Send>(_: &T) {}
+
+fn muted_engine() -> Option<HapticEngine> {
+    let capability = DeviceCapability::current().expect("failed to query capability");
+    match HapticEngine::new() {
+        Ok(engine) => {
+            assert!(capability.supports_haptics());
+            engine.set_muted_for_haptics(true);
+            engine.set_muted_for_audio(true);
+            Some(engine)
         }
-
-        let engine = HapticEngine::new().expect("failed to create engine");
-        engine.set_muted_for_haptics(true);
-        
-        // Test starting the engine
-        AsyncHapticEngine::start(&engine)
-            .await
-            .expect("failed to start engine");
-
-        // Give it a moment to actually start
-        std::thread::sleep(std::time::Duration::from_millis(10));
-
-        // Test stopping the engine
-        AsyncHapticEngine::stop(&engine)
-            .await
-            .expect("failed to stop engine");
-    });
+        Err(error) => {
+            assert!(!capability.supports_haptics());
+            assert_eq!(
+                error.haptic_error_code(),
+                Some(HapticErrorCode::NotSupported)
+            );
+            None
+        }
+    }
 }
 
 #[test]
-fn test_async_engine_multiple_starts_and_stops() {
-    pollster::block_on(async {
-        let capability = DeviceCapability::current().expect("failed to query capability");
-        if !capability.supports_haptics() {
-            println!("skipping test on non-haptic hardware");
-            return;
-        }
+fn async_engine_start_and_stop() {
+    let Some(engine) = muted_engine() else {
+        return;
+    };
+    let start = AsyncHapticEngine::start(&engine);
+    assert_send(&start);
+    assert!(pollster::block_on(start).is_ok());
 
-        let engine = HapticEngine::new().expect("failed to create engine");
-        engine.set_muted_for_haptics(true);
-        
-        // Test multiple start/stop cycles
-        for i in 0..3 {
-            println!("Cycle {}", i + 1);
-            
-            AsyncHapticEngine::start(&engine)
-                .await
-                .expect("failed to start engine");
-
-            std::thread::sleep(std::time::Duration::from_millis(10));
-
-            AsyncHapticEngine::stop(&engine)
-                .await
-                .expect("failed to stop engine");
-        }
-    });
+    let stop = AsyncHapticEngine::stop(&engine);
+    assert_send(&stop);
+    assert!(pollster::block_on(stop).is_ok());
 }
 
 #[test]
-fn test_async_notify_players_finished() {
-    pollster::block_on(async {
-        let capability = DeviceCapability::current().expect("failed to query capability");
-        if !capability.supports_haptics() {
-            println!("skipping test on non-haptic hardware");
-            return;
-        }
+fn async_engine_restarts_repeatedly() {
+    let Some(engine) = muted_engine() else {
+        return;
+    };
+    for _ in 0..3 {
+        assert!(pollster::block_on(AsyncHapticEngine::start(&engine)).is_ok());
+        assert!(pollster::block_on(AsyncHapticEngine::stop(&engine)).is_ok());
+    }
+}
 
-        let engine = HapticEngine::new().expect("failed to create engine");
-        engine.set_muted_for_haptics(true);
-        engine.set_muted_for_audio(true);
-        
-        AsyncHapticEngine::start(&engine)
-            .await
-            .expect("failed to start engine");
+#[test]
+fn async_notify_players_finished_resolves_after_playback() {
+    let Some(engine) = muted_engine() else {
+        return;
+    };
+    assert!(pollster::block_on(AsyncHapticEngine::start(&engine)).is_ok());
 
-        // Create a simple pattern
-        let pattern = HapticPattern::new(
-            &[HapticEvent::haptic_continuous(
-                0.0,
-                0.05,
-                vec![HapticEventParameter::haptic_intensity(0.5)],
-            )],
-            &[],
-        ).expect("failed to create pattern");
+    let pattern = HapticPattern::new(
+        &[HapticEvent::haptic_continuous(
+            0.0,
+            0.05,
+            vec![HapticEventParameter::haptic_intensity(0.5)],
+        )],
+        &[],
+    )
+    .expect("failed to create pattern");
+    let player = engine
+        .create_player(&pattern)
+        .expect("failed to create player");
+    player.set_muted(true);
+    assert!(player.start_immediately().is_ok());
 
-        // Create player and play
-        let player = engine.create_player(&pattern)
-            .expect("failed to create player");
-        player.set_muted(true);
-        player.start_immediately()
-            .expect("failed to start player");
-
-        // Wait for player to finish
-        AsyncHapticEngine::notify_when_players_finished(&engine)
-            .await
-            .expect("failed to wait for players");
-
-        AsyncHapticEngine::stop(&engine)
-            .await
-            .expect("failed to stop engine");
-    });
+    let finished = AsyncHapticEngine::notify_when_players_finished(&engine);
+    assert_send(&finished);
+    assert!(pollster::block_on(finished).is_ok());
+    assert!(pollster::block_on(AsyncHapticEngine::stop(&engine)).is_ok());
 }
