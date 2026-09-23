@@ -1,10 +1,10 @@
 # corehaptics
 
-Safe Rust bindings for Apple's [CoreHaptics](https://developer.apple.com/documentation/corehaptics) framework on macOS.
+Safe Rust bindings for Apple's [CoreHaptics](https://developer.apple.com/documentation/corehaptics) framework on macOS 10.15 or later.
 
-> **Status:** v0.3.0 reaches full audited safe coverage for the macOS CoreHaptics surface, including async engine lifecycle callbacks and Tier 1 async futures.
+> **Most Macs have no haptics hardware.** On a Mac without internal haptics, `DeviceCapability::current()?.supports_haptics()` is `false` and `HapticEngine::new()` fails with `HapticErrorCode::NotSupported`. On macOS, haptics usually come from game controllers: create an engine for one with `HapticEngine::from_device_haptics` (see below).
 
-The crate uses a static Swift bridge because `CoreHaptics` is Objective-C / Swift-first. All public Rust APIs are safe wrappers over that bridge.
+The crate uses a static Swift bridge because `CoreHaptics` is Objective-C / Swift-first. The public Rust APIs are safe wrappers over that bridge, except `HapticEngine::from_device_haptics`, which takes a raw Objective-C pointer, and the raw `ffi` module.
 
 ## Highlights
 
@@ -47,6 +47,10 @@ fn main() -> Result<()> {
     Ok(())
 }
 ```
+
+## Game controller haptics
+
+`HapticEngine::from_device_haptics(device_haptics, locality)` wraps `GCDeviceHaptics.createEngine(withLocality:)` (macOS 11 or later). `device_haptics` is a non-null pointer to a controller's `GCDeviceHaptics` object, for example `GCController.haptics` obtained through another `GameController` binding; it must point to a live `GCDeviceHaptics` for the duration of the call, which is why the function is `unsafe`. The call fails when the controller has no actuator for the requested `ControllerHapticsLocality`.
 
 ## Examples
 
@@ -97,7 +101,9 @@ See [`async_api`](src/async_api.rs) for documentation on all available futures.
 
 ## Notes
 
-- `HapticEngine::new()` fails with `HapticErrorCode::NotSupported` on Macs without internal haptics hardware.
+- `HapticEngine::new()` fails with `HapticErrorCode::NotSupported` on Macs without internal haptics hardware, which is most Macs.
+- `HapticEngine::stop()` waits at most 5 seconds for `CoreHaptics` to confirm and returns `CoreHapticsError::Timeout` otherwise.
+- File paths passed to `HapticPattern::from_file`, `HapticEngine::play_pattern_from_file`, and `HapticEngine::register_audio_resource` must be valid UTF-8, because `CoreHaptics` takes Foundation file URLs, which cannot represent other byte sequences. Other paths are rejected with `CoreHapticsError::InvalidArgument` instead of being rewritten.
 - Examples and tests mute haptic/audio output wherever possible so they remain headless-safe.
 - `HapticPattern::from_file` uses `CHHapticPattern(contentsOf:)`, which requires macOS 13.0+ at runtime.
 - `CHHapticEngine.initWithAudioSession` is intentionally omitted because `AVAudioSession` is unavailable on macOS.

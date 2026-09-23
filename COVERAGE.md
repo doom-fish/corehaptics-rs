@@ -1,4 +1,6 @@
-# CoreHaptics coverage audit (`corehaptics` v0.2.1)
+# CoreHaptics coverage audit (`corehaptics` v0.2.1, updated for v0.4.0)
+
+This table maps each declaration in the `CoreHaptics` headers to its wrapper. Most Macs have no internal haptics hardware, so most of these wrappers only do real work with an engine created for a game controller through `HapticEngine::from_device_haptics`.
 
 Audited against:
 
@@ -104,7 +106,7 @@ Status legend:
 | `CHHapticCompletionHandler` | ✅ | Rust closures via `HapticEngine::{start_with_completion_handler,start_async,stop_with_completion_handler,stop_async}` |
 | `startWithCompletionHandler:` | ✅ | `HapticEngine::{start_with_completion_handler,start_async}` |
 | `startAndReturnError:` | ✅ | `HapticEngine::start` |
-| `stopWithCompletionHandler:` | ✅ | `HapticEngine::{stop_with_completion_handler,stop_async}` (plus blocking `HapticEngine::stop`) |
+| `stopWithCompletionHandler:` | ✅ | `HapticEngine::{stop_with_completion_handler,stop_async}` (plus blocking `HapticEngine::stop`, which times out after 5 seconds) |
 | `notifyWhenPlayersFinished:` | ✅ | `HapticEngine::notify_when_players_finished` |
 | `createPlayerWithPattern:error` | ✅ | `HapticEngine::create_player` |
 | `createAdvancedPlayerWithPattern:error` | ✅ | `HapticEngine::create_advanced_player` |
@@ -115,6 +117,14 @@ Status legend:
 | `playPatternFromURL:error` | ✅ | `HapticEngine::play_pattern_from_file` |
 | `playPatternFromData:error` | ✅ | `HapticEngine::play_pattern_from_data` |
 | `intendedSpatialExperience` | ⏭️ | visionOS-only (`API_UNAVAILABLE(macos)`) |
+
+## `GameController` `GCDeviceHaptics.h`
+
+| API | Status | Notes |
+| --- | --- | --- |
+| `createEngineWithLocality:` | ✅ | `HapticEngine::from_device_haptics` (`unsafe`; takes a raw `GCDeviceHaptics` pointer) |
+| `GCHapticsLocality*` constants | ✅ | `ControllerHapticsLocality` |
+| `supportedLocalities` | ⏭️ | Not wrapped; query it through the `GameController` binding that provides the pointer |
 
 ## Deferred / skipped count
 

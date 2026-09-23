@@ -8,6 +8,8 @@ COVERAGE_PCT: 100
 
 Audit methodology: Enumerated all public symbols from CoreHaptics.framework headers (CHHapticErrors.h, CHHapticEvent.h, CHHapticParameter.h, CHHapticPattern.h, CHHapticPatternPlayer.h, CHHapticEngine.h, CHHapticDeviceCapability.h) on macOS 26.2.sdk. Counted each interface, protocol, enum, typedef, constant, and method as a symbol. Re-validated the v1 EXEMPT promotions against current SDK availability attributes—both exempt symbols remain valid as they carry SDK_UNAVAILABLE or visionos-only markers. All 139 verified symbols are present in the crate's safe Rust API via swift-bridge thunks and type wrappers.
 
+> **What these numbers measure.** The counts are declaration-level over the seven `CoreHaptics` headers as listed from MacOSX26.2.sdk; they do not measure behavior on real hardware. Most Macs have no internal haptics, so `HapticEngine::new()` fails with `NotSupported` there. Game controller engines come from `GCDeviceHaptics` in the `GameController` framework, which these headers do not include; since 0.4.0 `HapticEngine::from_device_haptics` wraps `GCDeviceHaptics.createEngine(withLocality:)` through a raw pointer.
+
 ## 🟢 VERIFIED
 | Symbol | Kind | Header | Wrapped by |
 | --- | --- | --- | --- |
