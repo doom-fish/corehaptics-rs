@@ -9,7 +9,7 @@ description = "Safe Rust bindings for Apple's CoreHaptics framework — capabili
 authors = ["Per Johansson <per@doom.fish>"]
 keywords = ["haptics", "corehaptics", "macos", "audio", "apple"]
 categories = ["api-bindings", "os::macos-apis", "multimedia"]
-rust-version = "1.76"
+rust-version = "1.82"
 readme = "README.md"
 build = "build.rs"
 include = [
@@ -44,7 +44,7 @@ crate-type = ["lib"]
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-doom-fish-utils = { path = "../doom-fish-utils", version = ">=0.1, <0.4", optional = true }
+doom-fish-utils = { path = "../doom-fish-utils", version = ">=0.4.1, <0.5", optional = true }
 
 [dev-dependencies]
 pollster = "0.3"
