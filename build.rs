@@ -11,6 +11,7 @@ fn main() {
     }
 
     println!("cargo:rustc-link-lib=framework=CoreHaptics");
+    println!("cargo:rustc-link-lib=framework=GameController");
     println!("cargo:rustc-link-lib=framework=Foundation");
 
     let swift_dir = "swift-bridge";

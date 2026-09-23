@@ -26,6 +26,33 @@ pub const HAPTIC_TIME_IMMEDIATE: f64 = 0.0;
 
 const ENGINE_STOP_TIMEOUT: Duration = Duration::from_secs(5);
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ControllerHapticsLocality {
+    Default,
+    All,
+    Handles,
+    LeftHandle,
+    RightHandle,
+    Triggers,
+    LeftTrigger,
+    RightTrigger,
+}
+
+impl ControllerHapticsLocality {
+    const fn as_raw(self) -> i32 {
+        match self {
+            Self::Default => 0,
+            Self::All => 1,
+            Self::Handles => 2,
+            Self::LeftHandle => 3,
+            Self::RightHandle => 4,
+            Self::Triggers => 5,
+            Self::LeftTrigger => 6,
+            Self::RightTrigger => 7,
+        }
+    }
+}
+
 /// Keys used by `CHHapticEngine.registerAudioResource(_:options:)`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum AudioResourceKey {
@@ -281,6 +308,35 @@ impl HapticEngine {
         let Some(obj) = (unsafe { RetainedObject::from_owned_raw(raw) }) else {
             return Err(crate::error::CoreHapticsError::UnexpectedNull(
                 "CHHapticEngine init",
+            ));
+        };
+        Ok(Self { obj })
+    }
+
+    #[allow(clippy::missing_safety_doc)]
+    pub unsafe fn from_device_haptics(
+        device_haptics: NonNull<c_void>,
+        locality: ControllerHapticsLocality,
+    ) -> crate::Result<Self> {
+        let mut error = core::ptr::null_mut();
+        let raw = unsafe {
+            crate::ffi::chrs_engine_create_with_device_haptics(
+                device_haptics.as_ptr(),
+                locality.as_raw(),
+                &raw mut error,
+            )
+        };
+        if raw.is_null() {
+            if error.is_null() {
+                return Err(CoreHapticsError::UnexpectedNull(
+                    "GCDeviceHaptics.createEngine",
+                ));
+            }
+            return Err(unsafe { error_from_raw("GCDeviceHaptics.createEngine", error) });
+        }
+        let Some(obj) = (unsafe { RetainedObject::from_owned_raw(raw) }) else {
+            return Err(CoreHapticsError::UnexpectedNull(
+                "GCDeviceHaptics.createEngine",
             ));
         };
         Ok(Self { obj })

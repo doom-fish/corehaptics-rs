@@ -17,6 +17,11 @@ pub type AsyncCompletionCallback = unsafe extern "C" fn(*const c_void, *const c_
 unsafe extern "C" {
     /// Creates a new engine instance.
     pub fn chrs_engine_create(error_out: *mut Object) -> Object;
+    pub fn chrs_engine_create_with_device_haptics(
+        haptics: Object,
+        locality: i32,
+        error_out: *mut Object,
+    ) -> Object;
     /// Starts the engine.
     pub fn chrs_engine_start(engine: Object, error_out: *mut Object) -> bool;
     /// Starts the engine with a completion callback.

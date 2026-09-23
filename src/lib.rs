@@ -30,8 +30,8 @@ pub use advanced_player::AdvancedPatternPlayer;
 pub use capability::{DeviceCapability, ParameterAttributes};
 pub use dynamic_parameter::{DynamicParameter, DynamicParameterId};
 pub use engine::{
-    AudioResourceKey, AudioResourceOptions, EngineFinishedAction, EngineStoppedReason,
-    HapticEngine, HAPTIC_TIME_IMMEDIATE,
+    AudioResourceKey, AudioResourceOptions, ControllerHapticsLocality, EngineFinishedAction,
+    EngineStoppedReason, HapticEngine, HAPTIC_TIME_IMMEDIATE,
 };
 pub use error::{CoreHapticsError, HapticErrorCode, Result, CORE_HAPTICS_ERROR_DOMAIN};
 pub use event::{AudioResourceId, HapticEvent, HapticEventType};
@@ -46,8 +46,8 @@ pub mod prelude {
     pub use crate::capability::{DeviceCapability, ParameterAttributes};
     pub use crate::dynamic_parameter::{DynamicParameter, DynamicParameterId};
     pub use crate::engine::{
-        AudioResourceKey, AudioResourceOptions, EngineFinishedAction, EngineStoppedReason,
-        HapticEngine, HAPTIC_TIME_IMMEDIATE,
+        AudioResourceKey, AudioResourceOptions, ControllerHapticsLocality, EngineFinishedAction,
+        EngineStoppedReason, HapticEngine, HAPTIC_TIME_IMMEDIATE,
     };
     pub use crate::error::{CoreHapticsError, HapticErrorCode, Result, CORE_HAPTICS_ERROR_DOMAIN};
     pub use crate::event::{AudioResourceId, HapticEvent, HapticEventType};

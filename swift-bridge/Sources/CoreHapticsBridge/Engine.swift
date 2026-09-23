@@ -1,6 +1,7 @@
 import CoreHaptics
 import Dispatch
 import Foundation
+import GameController
 
 private struct BridgeAudioResourceOptions: Decodable {
     let useVolumeEnvelope: Bool?
@@ -537,4 +538,48 @@ public func chrs_engine_notify_when_players_finished(
         _ = engineBox?.takeFinishedHandlerBox(ifIdenticalTo: finishedHandlerBox)
         return action
     }
+}
+
+@available(macOS 11.0, *)
+private func chrsHapticsLocality(_ raw: Int32) -> GCHapticsLocality? {
+    switch raw {
+    case 0: return .default
+    case 1: return .all
+    case 2: return .handles
+    case 3: return .leftHandle
+    case 4: return .rightHandle
+    case 5: return .triggers
+    case 6: return .leftTrigger
+    case 7: return .rightTrigger
+    default: return nil
+    }
+}
+
+@_cdecl("chrs_engine_create_with_device_haptics")
+public func chrs_engine_create_with_device_haptics(
+    _ rawHaptics: UnsafeMutableRawPointer?,
+    _ localityRaw: Int32,
+    _ errorOut: UnsafeMutablePointer<UnsafeMutableRawPointer?>?
+) -> UnsafeMutableRawPointer? {
+    guard #available(macOS 11.0, *) else {
+        chrsSetError(errorOut, chrsBridgeNSError(code: 57, message: "GCDeviceHaptics requires macOS 11.0"))
+        return nil
+    }
+    guard let rawHaptics else {
+        chrsSetError(errorOut, chrsBridgeNSError(code: 58, message: "missing GCDeviceHaptics object"))
+        return nil
+    }
+    guard let locality = chrsHapticsLocality(localityRaw) else {
+        chrsSetError(errorOut, chrsBridgeNSError(code: 59, message: "invalid GCHapticsLocality"))
+        return nil
+    }
+    let haptics = Unmanaged<GCDeviceHaptics>.fromOpaque(rawHaptics).takeUnretainedValue()
+    guard let engine = haptics.createEngine(withLocality: locality) else {
+        chrsSetError(
+            errorOut,
+            chrsBridgeNSError(code: 60, message: "controller has no haptics engine for locality \(locality.rawValue)")
+        )
+        return nil
+    }
+    return chrsRetain(EngineBox(engine))
 }
