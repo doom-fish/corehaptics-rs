@@ -8,6 +8,7 @@ use std::{
     path::Path,
     ptr::NonNull,
     sync::Mutex,
+    time::Duration,
 };
 
 use serde::{Deserialize, Serialize};
@@ -22,6 +23,8 @@ use crate::{
 
 /// `CHHapticTimeImmediate`.
 pub const HAPTIC_TIME_IMMEDIATE: f64 = 0.0;
+
+const ENGINE_STOP_TIMEOUT: Duration = Duration::from_secs(5);
 
 /// Keys used by `CHHapticEngine.registerAudioResource(_:options:)`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -339,8 +342,18 @@ impl HapticEngine {
     /// Stops the engine.
     pub fn stop(&self) -> crate::Result<()> {
         let mut error = core::ptr::null_mut();
-        let ok = unsafe { crate::ffi::chrs_engine_stop(self.as_raw(), &raw mut error) };
-        unsafe { bool_result(ok, error, "CHHapticEngine.stop") }
+        let status = unsafe {
+            crate::ffi::chrs_engine_stop(
+                self.as_raw(),
+                ENGINE_STOP_TIMEOUT.as_secs_f64(),
+                &raw mut error,
+            )
+        };
+        match status {
+            0 => unsafe { bool_result(true, error, "CHHapticEngine.stop") },
+            2 => Err(CoreHapticsError::Timeout("CHHapticEngine.stop")),
+            _ => unsafe { bool_result(false, error, "CHHapticEngine.stop") },
+        }
     }
 
     /// Stops the engine and invokes a completion handler when finished.

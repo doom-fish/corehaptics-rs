@@ -136,6 +136,7 @@ pub enum CoreHapticsError {
     UnexpectedNull(&'static str),
     /// An operation failed without an accompanying `NSError`.
     OperationFailed(&'static str),
+    Timeout(&'static str),
     /// An Objective-C operation returned an `NSError`.
     ObjectiveCError {
         /// The operation that failed.
@@ -175,6 +176,7 @@ impl fmt::Display for CoreHapticsError {
         match self {
             Self::UnexpectedNull(what) => write!(f, "{what} returned NULL"),
             Self::OperationFailed(op) => write!(f, "{op} failed"),
+            Self::Timeout(op) => write!(f, "{op} timed out"),
             Self::ObjectiveCError {
                 operation,
                 code,
@@ -217,5 +219,18 @@ impl From<std::io::Error> for CoreHapticsError {
 impl From<serde_json::Error> for CoreHapticsError {
     fn from(value: serde_json::Error) -> Self {
         Self::Json(value)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::CoreHapticsError;
+
+    #[test]
+    fn timeouts_name_their_operation() {
+        assert_eq!(
+            CoreHapticsError::Timeout("CHHapticEngine.stop").to_string(),
+            "CHHapticEngine.stop timed out"
+        );
     }
 }

@@ -27,7 +27,7 @@ unsafe extern "C" {
         drop_context: ContextDrop,
     );
     /// Stops the engine.
-    pub fn chrs_engine_stop(engine: Object, error_out: *mut Object) -> bool;
+    pub fn chrs_engine_stop(engine: Object, timeout_seconds: f64, error_out: *mut Object) -> i32;
     /// Stops the engine with a completion callback.
     pub fn chrs_engine_stop_with_completion_handler(
         engine: Object,

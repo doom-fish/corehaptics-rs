@@ -221,23 +221,43 @@ public func chrs_engine_start_with_completion_handler(
     }
 }
 
+private final class EngineStopResult {
+    private let lock = NSLock()
+    private var error: Error?
+
+    func store(_ error: Error?) {
+        lock.lock()
+        self.error = error
+        lock.unlock()
+    }
+
+    func load() -> Error? {
+        lock.lock()
+        defer { lock.unlock() }
+        return error
+    }
+}
+
 @_cdecl("chrs_engine_stop")
 public func chrs_engine_stop(
     _ rawEngine: UnsafeMutableRawPointer?,
+    _ timeoutSeconds: Double,
     _ errorOut: UnsafeMutablePointer<UnsafeMutableRawPointer?>?
-) -> Bool {
+) -> Int32 {
     let semaphore = DispatchSemaphore(value: 0)
-    var capturedError: Error?
+    let result = EngineStopResult()
     chrsEngineBox(rawEngine).engine.stop { error in
-        capturedError = error
+        result.store(error)
         semaphore.signal()
     }
-    semaphore.wait()
-    if let capturedError {
-        chrsSetError(errorOut, capturedError)
-        return false
+    guard semaphore.wait(timeout: .now() + timeoutSeconds) == .success else {
+        return 2
     }
-    return true
+    if let error = result.load() {
+        chrsSetError(errorOut, error)
+        return 1
+    }
+    return 0
 }
 
 @_cdecl("chrs_engine_stop_with_completion_handler")
