@@ -129,7 +129,7 @@ impl HapticPattern {
         let json = serde_json::to_string(envelope)?;
         let json = c_string(&json)?;
         let mut error = core::ptr::null_mut();
-        let raw = unsafe { crate::ffi::chrs_pattern_create(json.as_ptr(), &mut error) };
+        let raw = unsafe { crate::ffi::chrs_pattern_create(json.as_ptr(), &raw mut error) };
         if raw.is_null() {
             if error.is_null() {
                 return Err(crate::error::CoreHapticsError::UnexpectedNull(
@@ -151,7 +151,7 @@ impl HapticPattern {
         let json = c_string(json)?;
         let mut error = core::ptr::null_mut();
         let raw = unsafe {
-            crate::ffi::chrs_pattern_create_from_dictionary_json(json.as_ptr(), &mut error)
+            crate::ffi::chrs_pattern_create_from_dictionary_json(json.as_ptr(), &raw mut error)
         };
         if raw.is_null() {
             if error.is_null() {
@@ -179,8 +179,9 @@ impl HapticPattern {
         let path = path.as_ref();
         let path = path_c_string(path)?;
         let mut error = core::ptr::null_mut();
-        let raw =
-            unsafe { crate::ffi::chrs_pattern_create_from_ahap_file(path.as_ptr(), &mut error) };
+        let raw = unsafe {
+            crate::ffi::chrs_pattern_create_from_ahap_file(path.as_ptr(), &raw mut error)
+        };
         if raw.is_null() {
             if error.is_null() {
                 return Err(crate::error::CoreHapticsError::UnexpectedNull(
@@ -210,8 +211,9 @@ impl HapticPattern {
     /// Export the pattern as an AHAP dictionary JSON string.
     pub fn export_dictionary_json(&self) -> crate::Result<String> {
         let mut error = core::ptr::null_mut();
-        let json =
-            unsafe { crate::ffi::chrs_pattern_export_dictionary_json(self.as_raw(), &mut error) };
+        let json = unsafe {
+            crate::ffi::chrs_pattern_export_dictionary_json(self.as_raw(), &raw mut error)
+        };
         if json.is_null() {
             if error.is_null() {
                 return Err(crate::error::CoreHapticsError::UnexpectedNull(

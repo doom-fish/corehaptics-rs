@@ -69,7 +69,7 @@ impl AdvancedPatternPlayer {
     /// Starts the player at the specified engine time.
     pub fn start_at_time(&self, time: f64) -> crate::Result<()> {
         let mut error = core::ptr::null_mut();
-        let ok = unsafe { crate::ffi::chrs_player_start(self.as_raw(), time, &mut error) };
+        let ok = unsafe { crate::ffi::chrs_player_start(self.as_raw(), time, &raw mut error) };
         unsafe { bool_result(ok, error, "CHHapticPatternPlayer.start") }
     }
 
@@ -81,14 +81,14 @@ impl AdvancedPatternPlayer {
     /// Stops the player at the specified engine time.
     pub fn stop_at_time(&self, time: f64) -> crate::Result<()> {
         let mut error = core::ptr::null_mut();
-        let ok = unsafe { crate::ffi::chrs_player_stop(self.as_raw(), time, &mut error) };
+        let ok = unsafe { crate::ffi::chrs_player_stop(self.as_raw(), time, &raw mut error) };
         unsafe { bool_result(ok, error, "CHHapticPatternPlayer.stop") }
     }
 
     /// Cancels playback and clears queued commands.
     pub fn cancel(&self) -> crate::Result<()> {
         let mut error = core::ptr::null_mut();
-        let ok = unsafe { crate::ffi::chrs_player_cancel(self.as_raw(), &mut error) };
+        let ok = unsafe { crate::ffi::chrs_player_cancel(self.as_raw(), &raw mut error) };
         unsafe { bool_result(ok, error, "CHHapticPatternPlayer.cancel") }
     }
 
@@ -102,7 +102,7 @@ impl AdvancedPatternPlayer {
                 self.as_raw(),
                 parameters.as_ptr(),
                 time,
-                &mut error,
+                &raw mut error,
             )
         };
         unsafe { bool_result(ok, error, "CHHapticPatternPlayer.sendParameters") }
@@ -130,7 +130,7 @@ impl AdvancedPatternPlayer {
                 self.as_raw(),
                 parameter_curve.as_ptr(),
                 time,
-                &mut error,
+                &raw mut error,
             )
         };
         unsafe { bool_result(ok, error, "CHHapticPatternPlayer.scheduleParameterCurve") }
@@ -163,7 +163,8 @@ impl AdvancedPatternPlayer {
     /// Pauses playback at the specified engine time.
     pub fn pause_at_time(&self, time: f64) -> crate::Result<()> {
         let mut error = core::ptr::null_mut();
-        let ok = unsafe { crate::ffi::chrs_advanced_player_pause(self.as_raw(), time, &mut error) };
+        let ok =
+            unsafe { crate::ffi::chrs_advanced_player_pause(self.as_raw(), time, &raw mut error) };
         unsafe { bool_result(ok, error, "CHHapticAdvancedPatternPlayer.pause") }
     }
 
@@ -176,7 +177,7 @@ impl AdvancedPatternPlayer {
     pub fn resume_at_time(&self, time: f64) -> crate::Result<()> {
         let mut error = core::ptr::null_mut();
         let ok =
-            unsafe { crate::ffi::chrs_advanced_player_resume(self.as_raw(), time, &mut error) };
+            unsafe { crate::ffi::chrs_advanced_player_resume(self.as_raw(), time, &raw mut error) };
         unsafe { bool_result(ok, error, "CHHapticAdvancedPatternPlayer.resume") }
     }
 
@@ -184,7 +185,7 @@ impl AdvancedPatternPlayer {
     pub fn seek_to_offset(&self, offset: f64) -> crate::Result<()> {
         let mut error = core::ptr::null_mut();
         let ok = unsafe {
-            crate::ffi::chrs_advanced_player_seek_to_offset(self.as_raw(), offset, &mut error)
+            crate::ffi::chrs_advanced_player_seek_to_offset(self.as_raw(), offset, &raw mut error)
         };
         unsafe { bool_result(ok, error, "CHHapticAdvancedPatternPlayer.seekToOffset") }
     }

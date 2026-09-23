@@ -266,7 +266,7 @@ impl HapticEngine {
     /// Create a new `CHHapticEngine`.
     pub fn new() -> crate::Result<Self> {
         let mut error = core::ptr::null_mut();
-        let raw = unsafe { crate::ffi::chrs_engine_create(&mut error) };
+        let raw = unsafe { crate::ffi::chrs_engine_create(&raw mut error) };
         if raw.is_null() {
             if error.is_null() {
                 return Err(crate::error::CoreHapticsError::UnexpectedNull(
@@ -312,7 +312,7 @@ impl HapticEngine {
     /// Starts the engine.
     pub fn start(&self) -> crate::Result<()> {
         let mut error = core::ptr::null_mut();
-        let ok = unsafe { crate::ffi::chrs_engine_start(self.as_raw(), &mut error) };
+        let ok = unsafe { crate::ffi::chrs_engine_start(self.as_raw(), &raw mut error) };
         unsafe { bool_result(ok, error, "CHHapticEngine.start") }
     }
 
@@ -339,7 +339,7 @@ impl HapticEngine {
     /// Stops the engine.
     pub fn stop(&self) -> crate::Result<()> {
         let mut error = core::ptr::null_mut();
-        let ok = unsafe { crate::ffi::chrs_engine_stop(self.as_raw(), &mut error) };
+        let ok = unsafe { crate::ffi::chrs_engine_stop(self.as_raw(), &raw mut error) };
         unsafe { bool_result(ok, error, "CHHapticEngine.stop") }
     }
 
@@ -428,7 +428,7 @@ impl HapticEngine {
     pub fn create_player(&self, pattern: &HapticPattern) -> crate::Result<PatternPlayer> {
         let mut error = core::ptr::null_mut();
         let raw = unsafe {
-            crate::ffi::chrs_engine_create_player(self.as_raw(), pattern.as_raw(), &mut error)
+            crate::ffi::chrs_engine_create_player(self.as_raw(), pattern.as_raw(), &raw mut error)
         };
         if raw.is_null() {
             if error.is_null() {
@@ -456,7 +456,7 @@ impl HapticEngine {
             crate::ffi::chrs_engine_create_advanced_player(
                 self.as_raw(),
                 pattern.as_raw(),
-                &mut error,
+                &raw mut error,
             )
         };
         if raw.is_null() {
@@ -491,8 +491,8 @@ impl HapticEngine {
                 self.as_raw(),
                 path.as_ptr(),
                 options.as_ptr(),
-                &mut resource_id,
-                &mut error,
+                &raw mut resource_id,
+                &raw mut error,
             )
         };
         unsafe { bool_result(ok, error, "CHHapticEngine.registerAudioResource")? };
@@ -509,7 +509,7 @@ impl HapticEngine {
             crate::ffi::chrs_engine_unregister_audio_resource(
                 self.as_raw(),
                 resource_id,
-                &mut error,
+                &raw mut error,
             )
         };
         unsafe { bool_result(ok, error, "CHHapticEngine.unregisterAudioResource") }
@@ -520,7 +520,11 @@ impl HapticEngine {
         let path = path_c_string(path.as_ref())?;
         let mut error = core::ptr::null_mut();
         let ok = unsafe {
-            crate::ffi::chrs_engine_play_pattern_from_url(self.as_raw(), path.as_ptr(), &mut error)
+            crate::ffi::chrs_engine_play_pattern_from_url(
+                self.as_raw(),
+                path.as_ptr(),
+                &raw mut error,
+            )
         };
         unsafe { bool_result(ok, error, "CHHapticEngine.playPattern(from: URL)") }
     }
@@ -533,7 +537,7 @@ impl HapticEngine {
                 self.as_raw(),
                 data.as_ptr(),
                 data.len(),
-                &mut error,
+                &raw mut error,
             )
         };
         unsafe { bool_result(ok, error, "CHHapticEngine.playPattern(from: Data)") }

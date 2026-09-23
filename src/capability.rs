@@ -109,10 +109,10 @@ impl DeviceCapability {
                 self.as_raw(),
                 parameter_id.as_ptr(),
                 event_type.as_ptr(),
-                &mut min_value,
-                &mut max_value,
-                &mut default_value,
-                &mut error,
+                &raw mut min_value,
+                &raw mut max_value,
+                &raw mut default_value,
+                &raw mut error,
             )
         };
         unsafe {
@@ -143,10 +143,10 @@ impl DeviceCapability {
             crate::ffi::chrs_capability_dynamic_parameter_attributes(
                 self.as_raw(),
                 parameter_id.as_ptr(),
-                &mut min_value,
-                &mut max_value,
-                &mut default_value,
-                &mut error,
+                &raw mut min_value,
+                &raw mut max_value,
+                &raw mut default_value,
+                &raw mut error,
             )
         };
         unsafe {

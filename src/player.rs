@@ -34,7 +34,7 @@ impl PatternPlayer {
     /// Start the player at the specified engine time.
     pub fn start_at_time(&self, time: f64) -> crate::Result<()> {
         let mut error = core::ptr::null_mut();
-        let ok = unsafe { crate::ffi::chrs_player_start(self.as_raw(), time, &mut error) };
+        let ok = unsafe { crate::ffi::chrs_player_start(self.as_raw(), time, &raw mut error) };
         unsafe { bool_result(ok, error, "CHHapticPatternPlayer.start") }
     }
 
@@ -46,14 +46,14 @@ impl PatternPlayer {
     /// Stop the player at the specified engine time.
     pub fn stop_at_time(&self, time: f64) -> crate::Result<()> {
         let mut error = core::ptr::null_mut();
-        let ok = unsafe { crate::ffi::chrs_player_stop(self.as_raw(), time, &mut error) };
+        let ok = unsafe { crate::ffi::chrs_player_stop(self.as_raw(), time, &raw mut error) };
         unsafe { bool_result(ok, error, "CHHapticPatternPlayer.stop") }
     }
 
     /// Cancel the player and clear any queued commands.
     pub fn cancel(&self) -> crate::Result<()> {
         let mut error = core::ptr::null_mut();
-        let ok = unsafe { crate::ffi::chrs_player_cancel(self.as_raw(), &mut error) };
+        let ok = unsafe { crate::ffi::chrs_player_cancel(self.as_raw(), &raw mut error) };
         unsafe { bool_result(ok, error, "CHHapticPatternPlayer.cancel") }
     }
 
@@ -67,7 +67,7 @@ impl PatternPlayer {
                 self.as_raw(),
                 parameters.as_ptr(),
                 time,
-                &mut error,
+                &raw mut error,
             )
         };
         unsafe { bool_result(ok, error, "CHHapticPatternPlayer.sendParameters") }
@@ -95,7 +95,7 @@ impl PatternPlayer {
                 self.as_raw(),
                 parameter_curve.as_ptr(),
                 time,
-                &mut error,
+                &raw mut error,
             )
         };
         unsafe { bool_result(ok, error, "CHHapticPatternPlayer.scheduleParameterCurve") }
