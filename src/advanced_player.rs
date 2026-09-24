@@ -3,10 +3,9 @@
 #![allow(clippy::missing_errors_doc)]
 
 use core::ffi::c_void;
-use std::{
-    panic::{catch_unwind, AssertUnwindSafe},
-    ptr::NonNull,
-};
+use std::ptr::NonNull;
+
+use doom_fish_utils::panic_safe::catch_user_panic;
 
 use crate::{
     dynamic_parameter::DynamicParameter,
@@ -29,7 +28,8 @@ struct CompletionHandlerContext {
 
 unsafe extern "C" fn release_completion_handler_context(context: *mut c_void) {
     if let Some(context) = NonNull::new(context.cast::<CompletionHandlerContext>()) {
-        unsafe { drop(Box::from_raw(context.as_ptr())) };
+        let context = unsafe { Box::from_raw(context.as_ptr()) };
+        catch_user_panic("release_completion_handler_context", || drop(context));
     }
 }
 
@@ -46,7 +46,7 @@ unsafe extern "C" fn completion_handler_trampoline(
     } else {
         Some(unsafe { error_from_raw("CHHapticAdvancedPatternPlayer.completionHandler", error) })
     };
-    let _ = catch_unwind(AssertUnwindSafe(|| (state.callback)(error)));
+    catch_user_panic("completion_handler_trampoline", || (state.callback)(error));
 }
 
 impl AdvancedPatternPlayer {
@@ -244,5 +244,29 @@ impl AdvancedPatternPlayer {
     /// Clears the completion handler.
     pub fn clear_completion_handler(&self) {
         unsafe { crate::ffi::chrs_advanced_player_clear_completion_handler(self.as_raw()) };
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    struct PanicsOnDrop;
+
+    impl Drop for PanicsOnDrop {
+        fn drop(&mut self) {
+            panic!("completion handler state destructor panicked");
+        }
+    }
+
+    #[test]
+    fn completion_handler_context_destructor_contains_panics() {
+        let guard = PanicsOnDrop;
+        let context = Box::new(CompletionHandlerContext {
+            callback: Box::new(move |_| {
+                let _ = &guard;
+            }),
+        });
+        unsafe { release_completion_handler_context(Box::into_raw(context).cast()) };
     }
 }

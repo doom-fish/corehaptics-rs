@@ -3,14 +3,9 @@
 #![allow(clippy::missing_errors_doc)]
 
 use core::ffi::c_void;
-use std::{
-    panic::{catch_unwind, AssertUnwindSafe},
-    path::Path,
-    ptr::NonNull,
-    sync::Mutex,
-    time::Duration,
-};
+use std::{path::Path, ptr::NonNull, sync::Mutex, time::Duration};
 
+use doom_fish_utils::panic_safe::{catch_user_panic, catch_user_panic_result};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -205,25 +200,29 @@ struct CompletionHandlerContext {
 
 unsafe extern "C" fn release_stopped_handler_context(context: *mut c_void) {
     if let Some(context) = NonNull::new(context.cast::<StoppedHandlerContext>()) {
-        unsafe { drop(Box::from_raw(context.as_ptr())) };
+        let context = unsafe { Box::from_raw(context.as_ptr()) };
+        catch_user_panic("release_stopped_handler_context", || drop(context));
     }
 }
 
 unsafe extern "C" fn release_reset_handler_context(context: *mut c_void) {
     if let Some(context) = NonNull::new(context.cast::<ResetHandlerContext>()) {
-        unsafe { drop(Box::from_raw(context.as_ptr())) };
+        let context = unsafe { Box::from_raw(context.as_ptr()) };
+        catch_user_panic("release_reset_handler_context", || drop(context));
     }
 }
 
 unsafe extern "C" fn release_finished_handler_context(context: *mut c_void) {
     if let Some(context) = NonNull::new(context.cast::<FinishedHandlerContext>()) {
-        unsafe { drop(Box::from_raw(context.as_ptr())) };
+        let context = unsafe { Box::from_raw(context.as_ptr()) };
+        catch_user_panic("release_finished_handler_context", || drop(context));
     }
 }
 
 unsafe extern "C" fn release_completion_handler_context(context: *mut c_void) {
     if let Some(context) = NonNull::new(context.cast::<CompletionHandlerContext>()) {
-        unsafe { drop(Box::from_raw(context.as_ptr())) };
+        let context = unsafe { Box::from_raw(context.as_ptr()) };
+        catch_user_panic("release_completion_handler_context", || drop(context));
     }
 }
 
@@ -232,9 +231,9 @@ unsafe extern "C" fn stopped_handler_trampoline(context: *mut c_void, reason: i3
         return;
     };
     let state = unsafe { context.as_ref() };
-    let _ = catch_unwind(AssertUnwindSafe(|| {
+    catch_user_panic("stopped_handler_trampoline", || {
         (state.callback)(EngineStoppedReason::from_raw(reason));
-    }));
+    });
 }
 
 unsafe extern "C" fn reset_handler_trampoline(context: *mut c_void) {
@@ -242,7 +241,7 @@ unsafe extern "C" fn reset_handler_trampoline(context: *mut c_void) {
         return;
     };
     let state = unsafe { context.as_ref() };
-    let _ = catch_unwind(AssertUnwindSafe(|| (state.callback)()));
+    catch_user_panic("reset_handler_trampoline", || (state.callback)());
 }
 
 unsafe extern "C" fn finished_handler_trampoline(
@@ -258,8 +257,8 @@ unsafe extern "C" fn finished_handler_trampoline(
     } else {
         Some(unsafe { error_from_raw("CHHapticEngine.notifyWhenPlayersFinished", error) })
     };
-    catch_unwind(AssertUnwindSafe(|| (state.callback)(error))).map_or_else(
-        |_| EngineFinishedAction::LeaveEngineRunning.as_raw(),
+    catch_user_panic_result("finished_handler_trampoline", || (state.callback)(error)).map_or(
+        EngineFinishedAction::LeaveEngineRunning.as_raw(),
         EngineFinishedAction::as_raw,
     )
 }
@@ -282,7 +281,7 @@ unsafe extern "C" fn completion_handler_trampoline(
         Err(poisoned) => poisoned.into_inner(),
     };
     if let Some(callback) = callback.take() {
-        let _ = catch_unwind(AssertUnwindSafe(|| callback(error)));
+        catch_user_panic("completion_handler_trampoline", || callback(error));
     }
 }
 
@@ -674,5 +673,66 @@ impl HapticEngine {
                 Some(release_finished_handler_context),
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    struct PanicsOnDrop;
+
+    impl Drop for PanicsOnDrop {
+        fn drop(&mut self) {
+            panic!("handler state destructor panicked");
+        }
+    }
+
+    #[test]
+    fn handler_context_destructors_contain_panics() {
+        let guard = PanicsOnDrop;
+        let stopped = Box::new(StoppedHandlerContext {
+            callback: Box::new(move |_| {
+                let _ = &guard;
+            }),
+        });
+        unsafe { release_stopped_handler_context(Box::into_raw(stopped).cast()) };
+
+        let guard = PanicsOnDrop;
+        let reset = Box::new(ResetHandlerContext {
+            callback: Box::new(move || {
+                let _ = &guard;
+            }),
+        });
+        unsafe { release_reset_handler_context(Box::into_raw(reset).cast()) };
+
+        let guard = PanicsOnDrop;
+        let finished = Box::new(FinishedHandlerContext {
+            callback: Box::new(move |_| {
+                let _ = &guard;
+                EngineFinishedAction::LeaveEngineRunning
+            }),
+        });
+        unsafe { release_finished_handler_context(Box::into_raw(finished).cast()) };
+
+        let guard = PanicsOnDrop;
+        let completion = Box::new(CompletionHandlerContext {
+            operation: "test",
+            callback: Mutex::new(Some(Box::new(move |_| {
+                let _ = &guard;
+            }))),
+        });
+        unsafe { release_completion_handler_context(Box::into_raw(completion).cast()) };
+    }
+
+    #[test]
+    fn a_panicking_finished_handler_leaves_the_engine_running() {
+        let finished = Box::new(FinishedHandlerContext {
+            callback: Box::new(|_| panic!("finished handler panicked")),
+        });
+        let raw = Box::into_raw(finished).cast();
+        let action = unsafe { finished_handler_trampoline(raw, core::ptr::null_mut()) };
+        assert_eq!(action, EngineFinishedAction::LeaveEngineRunning.as_raw());
+        unsafe { release_finished_handler_context(raw) };
     }
 }
