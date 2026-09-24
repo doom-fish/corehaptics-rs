@@ -106,6 +106,8 @@ async fn example() -> Result<()> {
 
 See [`async_api`](src/async_api.rs) for documentation on all available futures.
 
+`AsyncHapticEngine::start` and `stop` run on Swift concurrency, whose runtime is part of macOS 12 and later. A binary that uses them must target macOS 12 or later (for example with `MACOSX_DEPLOYMENT_TARGET=12.0`) or have `/usr/lib/swift` as an rpath (`-Wl,-rpath,/usr/lib/swift`). Rust's default deployment target is older, and then the linker records `@rpath/libswift_Concurrency.dylib`, which dyld cannot load without that rpath.
+
 ## Notes
 
 - `HapticEngine::new()` fails with `HapticErrorCode::NotSupported` on Macs without internal haptics hardware, which is most Macs.

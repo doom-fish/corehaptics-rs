@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Depends on `doom-fish-utils` `>=0.4.1, <0.5` for its panic guard, with or without the `async` feature.
 - `rust-version` is now 1.82 (was 1.76).
 - **Breaking:** `NotifyPlayersFinishedFuture` reports `CoreHaptics` errors as `CoreHapticsError::ObjectiveCError`, with the `NSError` code and domain, instead of `InvalidArgument` with the description.
-- **Breaking:** the minimum macOS is 12 (was 10.15), and the Swift bridge targets macOS 12. `AsyncHapticEngine::start` and `stop` run on Swift concurrency, whose runtime ships with macOS from version 12; on macOS 10.15 and 11 they only worked where Xcode's back-deployment copy was on the rpath. The bridge's macOS 11 and 12 availability checks are gone.
+- **Breaking:** the minimum macOS is 12 (was 10.15), and the Swift bridge targets macOS 12. `AsyncHapticEngine::start` and `stop` run on Swift concurrency, whose runtime ships with macOS from version 12; on macOS 10.15 and 11 they only worked where Xcode's back-deployment copy was on the rpath. A binary that uses them now links the concurrency runtime strongly, so it must target macOS 12 or later or have `/usr/lib/swift` as an rpath (see the README). The bridge's macOS 11 and 12 availability checks are gone.
 
 ### Added
 
