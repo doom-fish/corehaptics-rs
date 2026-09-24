@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Paths that are not valid UTF-8 were silently rewritten with `to_string_lossy`, so `HapticPattern::from_file`, `HapticEngine::play_pattern_from_file` and `HapticEngine::register_audio_resource` could open a different file. Such paths are now rejected with `CoreHapticsError::InvalidArgument`; Foundation file URLs cannot represent them.
 - The async API tests now assert on both the no-haptics path and the playback path.
 - Handler contexts were dropped in `extern "C"` release callbacks without a panic guard, so a captured value whose destructor panics aborted the process. The contexts are now dropped inside `doom_fish_utils::panic_safe::catch_user_panic`, and the handler trampolines use the same helper instead of bare `catch_unwind`.
+- `AsyncHapticEngine::notify_when_players_finished` registered its own handler directly with `CHHapticEngine`, which keeps a single players-finished handler. When a later registration replaced it, the handler was released without being called, so the future never resolved and its completion context leaked. The future now uses the same registration as `HapticEngine::notify_when_players_finished` and resolves with `CoreHapticsError::OperationFailed` when its handler is released before it runs.
 
 ### Changed
 
@@ -21,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The Swift bridge links `GameController`.
 - Depends on `doom-fish-utils` `>=0.4.1, <0.5` for its panic guard, with or without the `async` feature.
 - `rust-version` is now 1.82 (was 1.76).
+- **Breaking:** `NotifyPlayersFinishedFuture` reports `CoreHaptics` errors as `CoreHapticsError::ObjectiveCError`, with the `NSError` code and domain, instead of `InvalidArgument` with the description.
 
 ### Added
 
@@ -29,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 - The unused `CoreHapticsBridge.h` header, which no longer matched the bridge.
+- **Breaking:** the raw `ffi::chrs_engine_notify_when_players_finished_async` bridge function.
 
 ## [0.3.4] - 2026-05-20
 

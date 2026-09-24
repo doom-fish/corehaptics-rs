@@ -135,10 +135,4 @@ unsafe extern "C" {
     pub fn chrs_engine_start_async(engine: Object, cb: AsyncCompletionCallback, ctx: *mut c_void);
     /// Stops the engine with an async completion callback.
     pub fn chrs_engine_stop_async(engine: Object, cb: AsyncCompletionCallback, ctx: *mut c_void);
-    /// Waits for players to finish with an async completion callback.
-    pub fn chrs_engine_notify_when_players_finished_async(
-        engine: Object,
-        cb: AsyncCompletionCallback,
-        ctx: *mut c_void,
-    );
 }

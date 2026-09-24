@@ -110,6 +110,7 @@ See [`async_api`](src/async_api.rs) for documentation on all available futures.
 
 - `HapticEngine::new()` fails with `HapticErrorCode::NotSupported` on Macs without internal haptics hardware, which is most Macs.
 - `HapticEngine::stop()` waits at most 5 seconds for `CoreHaptics` to confirm and returns `CoreHapticsError::Timeout` otherwise.
+- An engine keeps one players-finished handler. Each `notify_when_players_finished` call, sync or async, replaces the previous one; a replaced `AsyncHapticEngine::notify_when_players_finished` future resolves with `CoreHapticsError::OperationFailed`.
 - File paths passed to `HapticPattern::from_file`, `HapticEngine::play_pattern_from_file`, and `HapticEngine::register_audio_resource` must be valid UTF-8, because `CoreHaptics` takes Foundation file URLs, which cannot represent other byte sequences. Other paths are rejected with `CoreHapticsError::InvalidArgument` instead of being rewritten.
 - Examples and tests mute haptic/audio output wherever possible so they remain headless-safe.
 - `HapticPattern::from_file` uses `CHHapticPattern(contentsOf:)`, which requires macOS 13.0+ at runtime.

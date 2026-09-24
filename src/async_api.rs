@@ -89,7 +89,7 @@
 //! ```
 
 use crate::error::CoreHapticsError;
-use crate::HapticEngine;
+use crate::{EngineFinishedAction, HapticEngine};
 use doom_fish_utils::completion::{
     error_from_cstr, AsyncCompletion, AsyncCompletionFuture,
 };
@@ -97,7 +97,8 @@ use doom_fish_utils::panic_safe::catch_user_panic;
 use std::ffi::c_void;
 use std::future::Future;
 use std::pin::Pin;
-use std::task::{Context, Poll};
+use std::sync::{Arc, Mutex, PoisonError};
+use std::task::{Context, Poll, Waker};
 
 // ============================================================================
 // EngineFuture - Wraps AsyncCompletionFuture for engine operations
@@ -124,16 +125,64 @@ impl Future for EngineFuture {
 
 /// A future that completes when all players have finished playing.
 pub struct NotifyPlayersFinishedFuture {
-    inner: AsyncCompletionFuture<()>,
+    state: Arc<Mutex<PlayersFinishedState>>,
+}
+
+struct PlayersFinishedState {
+    done: bool,
+    result: Option<crate::Result<()>>,
+    waker: Option<Waker>,
+}
+
+struct PlayersFinishedSignal(Arc<Mutex<PlayersFinishedState>>);
+
+impl PlayersFinishedSignal {
+    fn finish(&self, result: crate::Result<()>) {
+        let waker = {
+            let mut state = self.0.lock().unwrap_or_else(PoisonError::into_inner);
+            if state.done {
+                return;
+            }
+            state.done = true;
+            state.result = Some(result);
+            state.waker.take()
+        };
+        if let Some(waker) = waker {
+            waker.wake();
+        }
+    }
+}
+
+impl Drop for PlayersFinishedSignal {
+    fn drop(&mut self) {
+        self.finish(Err(CoreHapticsError::OperationFailed(
+            "CHHapticEngine.notifyWhenPlayersFinished released the handler before calling it: a later registration replaced it or the engine was released",
+        )));
+    }
+}
+
+fn players_finished_channel() -> (PlayersFinishedSignal, NotifyPlayersFinishedFuture) {
+    let state = Arc::new(Mutex::new(PlayersFinishedState {
+        done: false,
+        result: None,
+        waker: None,
+    }));
+    (
+        PlayersFinishedSignal(Arc::clone(&state)),
+        NotifyPlayersFinishedFuture { state },
+    )
 }
 
 impl Future for NotifyPlayersFinishedFuture {
     type Output = crate::Result<()>;
 
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        Pin::new(&mut self.inner)
-            .poll(cx)
-            .map(|r| r.map_err(CoreHapticsError::InvalidArgument))
+    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        let mut state = self.state.lock().unwrap_or_else(PoisonError::into_inner);
+        if let Some(result) = state.result.take() {
+            return Poll::Ready(result);
+        }
+        state.waker = Some(cx.waker().clone());
+        Poll::Pending
     }
 }
 
@@ -169,26 +218,6 @@ extern "C" fn engine_stop_callback(
     // SAFETY: This is called from Swift FFI and must not panic across the boundary.
     // We wrap the entire callback in catch_user_panic to prevent UB.
     catch_user_panic("engine_stop_callback", || {
-        if error.is_null() {
-            // SAFETY: ctx is a valid pointer from AsyncCompletion::create().
-            unsafe { AsyncCompletion::<()>::complete_ok(ctx, ()) };
-        } else {
-            // SAFETY: error is a valid C string pointer from the Swift bridge.
-            let msg = unsafe { error_from_cstr(error) };
-            // SAFETY: ctx is a valid pointer from AsyncCompletion::create().
-            unsafe { AsyncCompletion::<()>::complete_err(ctx, msg) };
-        }
-    });
-}
-
-extern "C" fn notify_players_finished_callback(
-    _result: *const c_void,
-    error: *const i8,
-    ctx: *mut c_void,
-) {
-    // SAFETY: This is called from Swift FFI and must not panic across the boundary.
-    // We wrap the entire callback in catch_user_panic to prevent UB.
-    catch_user_panic("notify_players_finished_callback", || {
         if error.is_null() {
             // SAFETY: ctx is a valid pointer from AsyncCompletion::create().
             unsafe { AsyncCompletion::<()>::complete_ok(ctx, ()) };
@@ -254,20 +283,69 @@ impl AsyncHapticEngine {
     ///
     /// # Errors
     ///
-    /// Returns an error if the operation fails.
+    /// Returns the error `CoreHaptics` reports, or [`CoreHapticsError::OperationFailed`] when a
+    /// later players-finished registration replaces this one or the engine is released first.
+    #[must_use]
     pub fn notify_when_players_finished(
         engine: &HapticEngine,
     ) -> NotifyPlayersFinishedFuture {
-        let (future, ctx) = AsyncCompletion::create();
-        // SAFETY: engine.as_raw() is a valid engine pointer, notify_players_finished_callback
-        // is a valid callback, and ctx is a valid completion context from AsyncCompletion::create().
-        unsafe {
-            crate::ffi::chrs_engine_notify_when_players_finished_async(
-                engine.as_raw(),
-                notify_players_finished_callback,
-                ctx,
-            );
+        let (signal, future) = players_finished_channel();
+        engine.notify_when_players_finished(move |error| {
+            signal.finish(error.map_or(Ok(()), Err));
+            EngineFinishedAction::LeaveEngineRunning
+        });
+        future
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::task::Wake;
+
+    struct CountingWaker(AtomicUsize);
+
+    impl Wake for CountingWaker {
+        fn wake(self: Arc<Self>) {
+            self.0.fetch_add(1, Ordering::SeqCst);
         }
-        NotifyPlayersFinishedFuture { inner: future }
+    }
+
+    #[test]
+    fn a_handler_released_before_it_runs_resolves_the_future_with_an_error() {
+        let (signal, mut future) = players_finished_channel();
+        let counter = Arc::new(CountingWaker(AtomicUsize::new(0)));
+        let waker = Waker::from(Arc::clone(&counter));
+        let mut cx = Context::from_waker(&waker);
+        assert!(Pin::new(&mut future).poll(&mut cx).is_pending());
+        drop(signal);
+        assert_eq!(counter.0.load(Ordering::SeqCst), 1);
+        assert!(matches!(
+            Pin::new(&mut future).poll(&mut cx),
+            Poll::Ready(Err(CoreHapticsError::OperationFailed(_)))
+        ));
+    }
+
+    #[test]
+    fn a_handler_that_ran_keeps_its_result_when_it_is_released() {
+        let (signal, future) = players_finished_channel();
+        signal.finish(Ok(()));
+        signal.finish(Err(CoreHapticsError::OperationFailed("late")));
+        drop(signal);
+        assert!(pollster::block_on(future).is_ok());
+    }
+
+    #[test]
+    fn handler_errors_reach_the_future() {
+        let (signal, future) = players_finished_channel();
+        signal.finish(Err(CoreHapticsError::InvalidArgument(
+            "engine stopped".into(),
+        )));
+        drop(signal);
+        assert!(matches!(
+            pollster::block_on(future),
+            Err(CoreHapticsError::InvalidArgument(message)) if message == "engine stopped"
+        ));
     }
 }
