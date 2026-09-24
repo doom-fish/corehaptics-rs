@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Handler contexts were dropped in `extern "C"` release callbacks without a panic guard, so a captured value whose destructor panics aborted the process. The contexts are now dropped inside `doom_fish_utils::panic_safe::catch_user_panic`, and the handler trampolines use the same helper instead of bare `catch_unwind`.
 - `AsyncHapticEngine::notify_when_players_finished` registered its own handler directly with `CHHapticEngine`, which keeps a single players-finished handler. When a later registration replaced it, the handler was released without being called, so the future never resolved and its completion context leaked. The future now uses the same registration as `HapticEngine::notify_when_players_finished` and resolves with `CoreHapticsError::OperationFailed` when its handler is released before it runs.
 - Audio events in `HapticPattern::new`, `HapticEngine::unregister_audio_resource` and `HapticEngine::register_audio_resource` converted resource IDs with Swift's trapping integer initializers, so a `HapticEvent::audio_custom` with an ID above `i64::MAX` crashed the process with `SIGTRAP`. `CHHapticAudioResourceID` is an `NSUInteger`, so the `u64` ID now crosses the bridge by bit pattern in both directions. The engine stopped reason is narrowed with clamping.
+- `build.rs` no longer adds the toolchain's Swift 5.5 back-deployment directory (`usr/lib/swift-5.5/macosx`) to the link search path or rpath. Its old `libswift_Concurrency.dylib` shadowed the SDK's `libswift_Concurrency.tbd` for the whole binary, so the crate's own binaries linked the old copy and linking could break next to Swift bridges that use newer concurrency APIs.
 
 ### Changed
 
@@ -24,10 +25,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Depends on `doom-fish-utils` `>=0.4.1, <0.5` for its panic guard, with or without the `async` feature.
 - `rust-version` is now 1.82 (was 1.76).
 - **Breaking:** `NotifyPlayersFinishedFuture` reports `CoreHaptics` errors as `CoreHapticsError::ObjectiveCError`, with the `NSError` code and domain, instead of `InvalidArgument` with the description.
+- **Breaking:** the minimum macOS is 12 (was 10.15), and the Swift bridge targets macOS 12. `AsyncHapticEngine::start` and `stop` run on Swift concurrency, whose runtime ships with macOS from version 12; on macOS 10.15 and 11 they only worked where Xcode's back-deployment copy was on the rpath. The bridge's macOS 11 and 12 availability checks are gone.
 
 ### Added
 
-- `HapticEngine::from_device_haptics` and `ControllerHapticsLocality`, which create an engine for a game controller from a raw `GCDeviceHaptics` pointer through `GCDeviceHaptics.createEngine(withLocality:)` (macOS 11 or later).
+- `HapticEngine::from_device_haptics` and `ControllerHapticsLocality`, which create an engine for a game controller from a raw `GCDeviceHaptics` pointer through `GCDeviceHaptics.createEngine(withLocality:)`.
 
 ### Removed
 

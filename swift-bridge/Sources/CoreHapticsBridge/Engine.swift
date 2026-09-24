@@ -160,9 +160,6 @@ private func chrsAudioResourceOptions(_ raw: UnsafePointer<CChar>?) throws -> [C
     let options = try chrsDecodeJSON(raw, as: BridgeAudioResourceOptions.self)
     var dictionary: [CHHapticAudioResourceKey: Any] = [:]
     if let useVolumeEnvelope = options.useVolumeEnvelope {
-        guard #available(macOS 12.0, *) else {
-            throw chrsBridgeNSError(code: 51, message: "UseVolumeEnvelope requires macOS 12.0")
-        }
         dictionary[CHHapticAudioResourceKeyUseVolumeEnvelope as NSString] = useVolumeEnvelope
     }
     if let loopEnabled = options.loopEnabled {
@@ -540,7 +537,6 @@ public func chrs_engine_notify_when_players_finished(
     }
 }
 
-@available(macOS 11.0, *)
 private func chrsHapticsLocality(_ raw: Int32) -> GCHapticsLocality? {
     switch raw {
     case 0: return .default
@@ -561,10 +557,6 @@ public func chrs_engine_create_with_device_haptics(
     _ localityRaw: Int32,
     _ errorOut: UnsafeMutablePointer<UnsafeMutableRawPointer?>?
 ) -> UnsafeMutableRawPointer? {
-    guard #available(macOS 11.0, *) else {
-        chrsSetError(errorOut, chrsBridgeNSError(code: 57, message: "GCDeviceHaptics requires macOS 11.0"))
-        return nil
-    }
     guard let rawHaptics else {
         chrsSetError(errorOut, chrsBridgeNSError(code: 58, message: "missing GCDeviceHaptics object"))
         return nil

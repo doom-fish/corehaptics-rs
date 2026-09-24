@@ -4,7 +4,7 @@ import PackageDescription
 let package = Package(
     name: "CoreHapticsBridge",
     platforms: [
-        .macOS(.v10_15),
+        .macOS(.v12),
     ],
     products: [
         .library(name: "CoreHapticsBridge", type: .static, targets: ["CoreHapticsBridge"]),

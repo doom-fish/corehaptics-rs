@@ -73,16 +73,10 @@ fn main() {
     match Command::new("xcode-select").arg("-p").output() {
         Ok(output) if output.status.success() => {
             let xcode_path = String::from_utf8_lossy(&output.stdout).trim().to_string();
-            let new_runtime =
+            let swift_runtime =
                 format!("{xcode_path}/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/macosx");
-            println!("cargo:rustc-link-search=native={new_runtime}");
-            println!("cargo:rustc-link-arg=-Wl,-rpath,{new_runtime}");
-
-            let old_runtime = format!(
-                "{xcode_path}/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/macosx"
-            );
-            println!("cargo:rustc-link-search=native={old_runtime}");
-            println!("cargo:rustc-link-arg=-Wl,-rpath,{old_runtime}");
+            println!("cargo:rustc-link-search=native={swift_runtime}");
+            println!("cargo:rustc-link-arg=-Wl,-rpath,{swift_runtime}");
         }
         Ok(output) => {
             println!(

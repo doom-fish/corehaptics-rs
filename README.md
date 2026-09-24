@@ -1,6 +1,6 @@
 # corehaptics
 
-Safe Rust bindings for Apple's [CoreHaptics](https://developer.apple.com/documentation/corehaptics) framework on macOS 10.15 or later.
+Safe Rust bindings for Apple's [CoreHaptics](https://developer.apple.com/documentation/corehaptics) framework on macOS 12 or later.
 
 > **Most Macs have no haptics hardware.** On a Mac without internal haptics, `DeviceCapability::current()?.supports_haptics()` is `false` and `HapticEngine::new()` fails with `HapticErrorCode::NotSupported`. On macOS, haptics usually come from game controllers: create an engine for one with `HapticEngine::from_device_haptics` (see below).
 
@@ -57,7 +57,7 @@ fn main() -> Result<()> {
 
 ## Game controller haptics
 
-`HapticEngine::from_device_haptics(device_haptics, locality)` wraps `GCDeviceHaptics.createEngine(withLocality:)` (macOS 11 or later). `device_haptics` is a non-null pointer to a controller's `GCDeviceHaptics` object, for example `GCController.haptics` obtained through another `GameController` binding; it must point to a live `GCDeviceHaptics` for the duration of the call, which is why the function is `unsafe`. The call fails when the controller has no actuator for the requested `ControllerHapticsLocality`.
+`HapticEngine::from_device_haptics(device_haptics, locality)` wraps `GCDeviceHaptics.createEngine(withLocality:)`. `device_haptics` is a non-null pointer to a controller's `GCDeviceHaptics` object, for example `GCController.haptics` obtained through another `GameController` binding; it must point to a live `GCDeviceHaptics` for the duration of the call, which is why the function is `unsafe`. The call fails when the controller has no actuator for the requested `ControllerHapticsLocality`.
 
 ## Examples
 
