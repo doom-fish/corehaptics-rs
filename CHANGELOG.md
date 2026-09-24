@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The async API tests now assert on both the no-haptics path and the playback path.
 - Handler contexts were dropped in `extern "C"` release callbacks without a panic guard, so a captured value whose destructor panics aborted the process. The contexts are now dropped inside `doom_fish_utils::panic_safe::catch_user_panic`, and the handler trampolines use the same helper instead of bare `catch_unwind`.
 - `AsyncHapticEngine::notify_when_players_finished` registered its own handler directly with `CHHapticEngine`, which keeps a single players-finished handler. When a later registration replaced it, the handler was released without being called, so the future never resolved and its completion context leaked. The future now uses the same registration as `HapticEngine::notify_when_players_finished` and resolves with `CoreHapticsError::OperationFailed` when its handler is released before it runs.
+- Audio events in `HapticPattern::new`, `HapticEngine::unregister_audio_resource` and `HapticEngine::register_audio_resource` converted resource IDs with Swift's trapping integer initializers, so a `HapticEvent::audio_custom` with an ID above `i64::MAX` crashed the process with `SIGTRAP`. `CHHapticAudioResourceID` is an `NSUInteger`, so the `u64` ID now crosses the bridge by bit pattern in both directions. The engine stopped reason is narrowed with clamping.
 
 ### Changed
 

@@ -24,7 +24,7 @@ final class EngineStoppedHandlerBox {
     }
 
     func invoke(_ reason: CHHapticEngine.StoppedReason) {
-        callback(context, Int32(reason.rawValue))
+        callback(context, Int32(clamping: reason.rawValue))
     }
 
     deinit {
@@ -388,7 +388,7 @@ public func chrs_engine_register_audio_resource(
         }
         let options = try chrsAudioResourceOptions(optionsJSON)
         let resourceID = try chrsEngineBox(rawEngine).engine.registerAudioResource(URL(fileURLWithPath: path), options: options)
-        outResourceID?.pointee = UInt64(resourceID)
+        outResourceID?.pointee = UInt64(truncatingIfNeeded: resourceID)
         return true
     } catch {
         chrsSetError(errorOut, error)
@@ -403,7 +403,7 @@ public func chrs_engine_unregister_audio_resource(
     _ errorOut: UnsafeMutablePointer<UnsafeMutableRawPointer?>?
 ) -> Bool {
     do {
-        try chrsEngineBox(rawEngine).engine.unregisterAudioResource(Int(resourceID))
+        try chrsEngineBox(rawEngine).engine.unregisterAudioResource(Int(truncatingIfNeeded: resourceID))
         return true
     } catch {
         chrsSetError(errorOut, error)

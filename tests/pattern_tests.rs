@@ -59,3 +59,16 @@ fn from_file_does_not_substitute_a_lossy_path() -> corehaptics::Result<()> {
     assert!(HapticPattern::from_file(&lossy).is_ok());
     Ok(())
 }
+
+#[test]
+fn audio_resource_ids_beyond_the_int_range_do_not_trap() -> corehaptics::Result<()> {
+    for audio_resource_id in [u64::MAX, 1 << 63, 7] {
+        let events = [
+            HapticEvent::audio_custom(audio_resource_id, 0.0, vec![]),
+            HapticEvent::audio_custom_with_duration(audio_resource_id, 0.1, 0.2, vec![]),
+        ];
+        let pattern = HapticPattern::new(&events, &[])?;
+        assert!((pattern.duration() - 0.3).abs() < 1e-9);
+    }
+    Ok(())
+}

@@ -36,14 +36,14 @@ func chrsMakeEvent(_ event: BridgeEvent) throws -> CHHapticEvent {
     if let audioResourceId = event.audioResourceId {
         if let duration = event.duration {
             return CHHapticEvent(
-                audioResourceID: Int(audioResourceId),
+                audioResourceID: Int(truncatingIfNeeded: audioResourceId),
                 parameters: parameters,
                 relativeTime: event.relativeTime,
                 duration: duration
             )
         }
         return CHHapticEvent(
-            audioResourceID: Int(audioResourceId),
+            audioResourceID: Int(truncatingIfNeeded: audioResourceId),
             parameters: parameters,
             relativeTime: event.relativeTime
         )
